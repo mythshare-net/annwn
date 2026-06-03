@@ -746,10 +746,15 @@ function update(dt){
   const sprint=((keys['ShiftLeft']||keys['ShiftRight'])||(IS_TOUCH&&touchMv.sprint))&&player.vig>0;
   const spd=(sprint?4.2:2.6)*dt, rot=2.4*dt;
   let mvx=0,mvy=0;
+  // A/D auto-mode: when mouse-look is engaged (pointer lock) they strafe like
+  // a standard FPS; when it isn't, they turn like the arrow keys so casual
+  // play feels intuitive without first clicking the canvas.
+  const strafeMode=(document.pointerLockElement===cv);
   if(keys['KeyW']||keys['ArrowUp']){mvx+=Math.cos(player.a);mvy+=Math.sin(player.a);}
   if(keys['KeyS']||keys['ArrowDown']){mvx-=Math.cos(player.a);mvy-=Math.sin(player.a);}
-  if(keys['KeyA']){mvx+=Math.cos(player.a-Math.PI/2);mvy+=Math.sin(player.a-Math.PI/2);}
-  if(keys['KeyD']){mvx+=Math.cos(player.a+Math.PI/2);mvy+=Math.sin(player.a+Math.PI/2);}
+  if(keys['KeyA']){if(strafeMode){mvx+=Math.cos(player.a-Math.PI/2);mvy+=Math.sin(player.a-Math.PI/2);}else{player.a-=rot;}}
+  if(keys['KeyD']){if(strafeMode){mvx+=Math.cos(player.a+Math.PI/2);mvy+=Math.sin(player.a+Math.PI/2);}else{player.a+=rot;}}
+  if(keys['KeyQ']){mvx+=Math.cos(player.a-Math.PI/2);mvy+=Math.sin(player.a-Math.PI/2);} // always-strafe-left for mouse-look users
   if(keys['ArrowLeft'])player.a-=rot; if(keys['ArrowRight'])player.a+=rot;
   if(IS_TOUCH){
     if(touchMv.active){
@@ -1042,7 +1047,7 @@ function showTitle(){state='title';bossbar.classList.remove('show');wrap.classLi
     <p class="firstcap">Wearing the face of the Otherworld's king, you must walk the realm of the dead for a year and a day. Free the shades bound in its mist. Bear witness to the Four Branches of the Mabinogi. Find your way home.</p>
     <button class="btn" id="startBtn">Enter the Mist</button>
     ${cdxHint}
-    <div class="ctrls">${IS_TOUCH?`<b>Left stick</b> — move &nbsp;·&nbsp; push hard to run<br><b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W A S D</b> / Arrows — move &nbsp;·&nbsp; <b>Shift</b> — run &nbsp;·&nbsp; <b>Mouse</b> — look<br><b>Click / Space</b> — strike &nbsp;·&nbsp; <b>F / Right-click</b> — Arawn's Horn<br><b>E</b> — read lorestone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
+    <div class="ctrls">${IS_TOUCH?`<b>Left stick</b> — move &nbsp;·&nbsp; push hard to run<br><b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W S</b> / Up Down — walk &nbsp;·&nbsp; <b>A D</b> / Left Right — turn<br><b>Click canvas</b> — engage mouse-look (then A D strafe, Q strafes left)<br><b>Space / Click</b> — strike &nbsp;·&nbsp; <b>F</b> — horn &nbsp;·&nbsp; <b>E</b> — read &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
   overlay.classList.remove('hidden');
   document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
   const cb=document.getElementById('cdxBtn');if(cb)cb.onclick=()=>{state='play';openCodex();};
