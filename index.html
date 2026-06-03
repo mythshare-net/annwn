@@ -81,30 +81,35 @@
   .codex .reader p{font-family:'EB Garamond',serif;font-style:italic;color:#cabfa6;font-size:16px;line-height:1.7;margin:0}
   .codex .reader.empty p{color:var(--mist);text-align:center}
   .codex .progress{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.22em;color:var(--mist);text-align:center;margin-top:10px;text-transform:uppercase}
-  /* touch controls — hidden by default, shown when body.touch is set on touch devices */
+  /* touch controls — twin-stick layout, shown when body.touch is set */
   .touchUI{display:none}
   body.touch .touchUI{display:block}
-  body.touch #overlay:not(.hidden) ~ .touchUI,
-  body.touch #wrap > .touchUI{} /* (placeholder for future scoping) */
-  body.touch #overlay:not(.hidden){z-index:20}
   body.touch.menu .touchUI{display:none}
+  body.touch #overlay:not(.hidden){z-index:20}
   body.touch #cross{display:none}
-  body.touch #mini{width:84px;height:84px;top:8px;right:8px}
-  body.touch{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-  #stickArea{position:absolute;left:0;bottom:0;width:50%;height:60%;z-index:12;touch-action:none}
-  #lookArea{position:absolute;right:0;top:0;width:50%;height:100%;z-index:11;touch-action:none}
-  #stickBase{position:absolute;width:140px;height:140px;border-radius:50%;border:2px solid rgba(201,162,39,.45);background:rgba(8,12,12,.32);box-shadow:0 0 24px rgba(0,0,0,.5) inset;pointer-events:none;transform:translate(-50%,-50%);opacity:0;transition:opacity .15s;z-index:13}
-  #stickBase.show{opacity:1}
-  #stickKnob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin-left:-30px;margin-top:-30px;border-radius:50%;background:rgba(201,162,39,.65);box-shadow:0 0 18px rgba(201,162,39,.6)}
-  .tBtn{position:absolute;right:18px;width:72px;height:72px;border-radius:50%;border:2px solid rgba(201,162,39,.55);background:rgba(8,12,12,.55);color:var(--bone);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;text-align:center;line-height:72px;box-shadow:0 4px 18px rgba(0,0,0,.55);z-index:14;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  body.touch #mini{width:84px;height:84px;top:calc(8px + env(safe-area-inset-top));right:8px}
+  body.touch{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;position:fixed;width:100vw;height:100vh;overflow:hidden}
+  /* stick zones — split the screen in half; sticks float to first touch in their zone */
+  #stickArea{position:absolute;left:0;bottom:0;width:50%;height:70%;z-index:12;touch-action:none}
+  #stickAreaR{position:absolute;right:0;bottom:0;width:50%;height:70%;z-index:12;touch-action:none}
+  /* anchors — always visible at rest so the player can see where to place thumbs */
+  .stickBase{position:absolute;width:140px;height:140px;border-radius:50%;border:2px solid rgba(201,162,39,.45);background:rgba(8,12,12,.32);box-shadow:0 0 24px rgba(0,0,0,.5) inset;pointer-events:none;transform:translate(-50%,-50%);opacity:.28;transition:opacity .18s;z-index:13}
+  .stickBase.show{opacity:.85}
+  .stickKnob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin-left:-30px;margin-top:-30px;border-radius:50%;background:rgba(201,162,39,.55);box-shadow:0 0 18px rgba(201,162,39,.5)}
+  /* labels under the anchors — fade after first use */
+  .stickLbl{position:absolute;font-family:'Cinzel',serif;font-size:10px;letter-spacing:.32em;color:var(--gold);text-shadow:0 2px 4px #000;transform:translateX(-50%);pointer-events:none;z-index:13;opacity:.8;transition:opacity .8s}
+  .stickLbl.hide{opacity:0}
+  /* action buttons — right edge, stacked with explicit clearance */
+  .tBtn{position:absolute;right:calc(18px + env(safe-area-inset-right));width:72px;height:72px;border-radius:50%;border:2px solid rgba(201,162,39,.55);background:rgba(8,12,12,.6);color:var(--bone);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;text-align:center;line-height:72px;box-shadow:0 4px 18px rgba(0,0,0,.55);z-index:14;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   .tBtn:active{background:rgba(201,162,39,.35);transform:scale(.96)}
   .tBtn.gold{border-color:var(--gold);color:var(--gold)}
-  #tHorn{bottom:120px}
-  #tStrike{bottom:32px;width:96px;height:96px;line-height:96px;font-size:13px;border-color:var(--blood);color:#ffb09a}
-  #tRead{bottom:220px;background:rgba(201,162,39,.18);border-color:var(--gold);color:var(--gold);opacity:0;transition:opacity .25s;pointer-events:none}
+  /* stack: Strike (bigger) at bottom, Horn above, Read above that — all safe-area aware */
+  #tStrike{bottom:calc(30px + env(safe-area-inset-bottom));width:96px;height:96px;line-height:96px;font-size:13px;border-color:var(--blood);color:#ffb09a;right:calc(8px + env(safe-area-inset-right))}
+  #tHorn{bottom:calc(140px + env(safe-area-inset-bottom))}
+  #tRead{bottom:calc(230px + env(safe-area-inset-bottom));background:rgba(201,162,39,.18);border-color:var(--gold);color:var(--gold);opacity:0;transition:opacity .25s;pointer-events:none}
   #tRead.show{opacity:1;pointer-events:auto}
-  #tPause{position:absolute;left:18px;top:18px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(201,162,39,.4);background:rgba(8,12,12,.55);color:var(--bone);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;line-height:42px;text-align:center;z-index:14;text-transform:uppercase;touch-action:manipulation}
-  #tCodex{position:absolute;left:74px;top:18px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(201,162,39,.4);background:rgba(8,12,12,.55);color:var(--gold);font-size:18px;line-height:42px;text-align:center;z-index:14;touch-action:manipulation}
+  #tPause{position:absolute;left:calc(18px + env(safe-area-inset-left));top:calc(18px + env(safe-area-inset-top));width:44px;height:44px;border-radius:50%;border:1px solid rgba(201,162,39,.4);background:rgba(8,12,12,.55);color:var(--bone);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;line-height:42px;text-align:center;z-index:14;text-transform:uppercase;touch-action:manipulation}
+  #tCodex{position:absolute;left:calc(74px + env(safe-area-inset-left));top:calc(18px + env(safe-area-inset-top));width:44px;height:44px;border-radius:50%;border:1px solid rgba(201,162,39,.4);background:rgba(8,12,12,.55);color:var(--gold);font-size:18px;line-height:42px;text-align:center;z-index:14;touch-action:manipulation}
   body.touch #hud{height:54px;gap:22px;padding:0 8px}
   body.touch #hud .stat{min-width:54px}
   body.touch #hud .val{font-size:17px}
@@ -128,11 +133,14 @@
   <div id="msg"></div>
   <div id="prompt"><b>E</b> Read the stone</div>
   <div id="codexchip">📜 TAB · Codex</div>
-  <!-- touch controls -->
+  <!-- touch controls — twin-stick: left = move, right = turn -->
   <div class="touchUI">
-    <div id="lookArea"></div>
     <div id="stickArea"></div>
-    <div id="stickBase"><div id="stickKnob"></div></div>
+    <div id="stickAreaR"></div>
+    <div id="stickBase" class="stickBase"><div class="stickKnob"></div></div>
+    <div id="stickBaseR" class="stickBase"><div class="stickKnob"></div></div>
+    <div id="stickLbl" class="stickLbl">MOVE</div>
+    <div id="stickLblR" class="stickLbl">TURN</div>
     <div id="tHorn" class="tBtn gold">Horn</div>
     <div id="tStrike" class="tBtn">Strike</div>
     <div id="tRead" class="tBtn">Read</div>
@@ -489,9 +497,8 @@ function levelClear(){return souls.every(s=>s.freed)&&!enemies.some(e=>e.kind===
 const IS_TOUCH=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
 if(IS_TOUCH)document.body.classList.add('touch');
 const keys={};
-const touchMv={x:0,y:0,active:false,sprint:false}; // virtual joystick output
-let lookTouchId=null,lookLastX=0,lookLastY=0,lookStartX=0,lookStartY=0,lookStartT=0,lookMoved=false;
-let stickTouchId=null,stickCx=0,stickCy=0;
+const touchMv={x:0,y:0,active:false,sprint:false};   // left stick (move)
+const lookMv={x:0,y:0,active:false};                  // right stick (turn)
 addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='Tab')e.preventDefault();
   if(!e.repeat){
@@ -512,86 +519,105 @@ addEventListener('contextmenu',e=>{if(document.pointerLockElement===cv)e.prevent
 document.addEventListener('pointerlockchange',()=>{if(!IS_TOUCH&&!document.pointerLockElement&&state==='play')pauseGame();});
 
 /* ---------- touch input ---------- */
+let TOUCH_TURN_RATE=4.0; // base rad/s at full right-stick extension; tuned by Turn Speed slider
+function resumeOrClose(){if(state==='codex'){closeCodex();}else if(state==='lore'){closeLore();}else{resumeGame();}}
+function startAudioOnce(){audioInit();ensureAudio();}
 if(IS_TOUCH){
-  const stickArea=document.getElementById('stickArea');
-  const lookArea=document.getElementById('lookArea');
-  const stickBase=document.getElementById('stickBase');
-  const stickKnob=document.getElementById('stickKnob');
-  const TOUCH_SENS=0.0048; // mobile look sensitivity (per CSS pixel)
-  const STICK_RADIUS=70;   // pixels: where knob clamps to full extension
+  const STICK_RADIUS=70;
   const SPRINT_FRAC=0.92;
-  function updateStickVisual(dx,dy,mag){
-    const r=Math.min(STICK_RADIUS,mag);
-    const ang=Math.atan2(dy,dx);
-    stickKnob.style.left=(50+Math.cos(ang)*r/STICK_RADIUS*50)+'%';
-    stickKnob.style.top=(50+Math.sin(ang)*r/STICK_RADIUS*50)+'%';
+  // restore persisted touch turn-speed
+  try{const v=parseFloat(localStorage.getItem('annwn.touchSens'));if(v>0&&v<10)TOUCH_TURN_RATE=4.0*v;}catch(e){}
+  // anchor positions in CSS px from each corner
+  const ANCHOR_L={left:'80px',bottom:'120px'};
+  const ANCHOR_R={right:'80px',bottom:'120px'};
+  function placeAnchor(base,anchor){
+    base.style.left=anchor.left||'';base.style.right=anchor.right||'';
+    base.style.top=anchor.top||'';base.style.bottom=anchor.bottom||'';
+    base.style.transform=''; // sticks at rest use CSS-corner anchoring, not the floating translate
   }
-  function resetStickVisual(){stickKnob.style.left='50%';stickKnob.style.top='50%';}
-  function startAudioOnce(){audioInit();ensureAudio();}
-  stickArea.addEventListener('touchstart',e=>{e.preventDefault();startAudioOnce();
-    if(stickTouchId!==null)return;
-    const t=e.changedTouches[0];stickTouchId=t.identifier;
-    stickCx=t.clientX;stickCy=t.clientY;
-    stickBase.style.left=stickCx+'px';stickBase.style.top=stickCy+'px';stickBase.classList.add('show');
-    resetStickVisual();touchMv.active=true;
-  },{passive:false});
-  stickArea.addEventListener('touchmove',e=>{e.preventDefault();
-    for(const t of e.changedTouches){if(t.identifier!==stickTouchId)continue;
-      const dx=t.clientX-stickCx, dy=t.clientY-stickCy;
-      const mag=Math.sqrt(dx*dx+dy*dy);
-      const r=Math.min(STICK_RADIUS,mag);
-      const k=mag>0?r/mag:0;
-      touchMv.x=dx*k/STICK_RADIUS; touchMv.y=dy*k/STICK_RADIUS;
-      touchMv.sprint=(r/STICK_RADIUS)>SPRINT_FRAC;
-      updateStickVisual(dx,dy,mag);
-    }
-  },{passive:false});
-  function endStick(e){
-    for(const t of e.changedTouches){if(t.identifier!==stickTouchId)continue;
-      stickTouchId=null;touchMv.x=0;touchMv.y=0;touchMv.active=false;touchMv.sprint=false;
-      stickBase.classList.remove('show');resetStickVisual();
-    }
+  function setKnob(knob,dx,dy){
+    const mag=Math.sqrt(dx*dx+dy*dy);
+    const r=Math.min(STICK_RADIUS,mag); const ang=Math.atan2(dy,dx);
+    knob.style.left=(50+Math.cos(ang)*r/STICK_RADIUS*50)+'%';
+    knob.style.top=(50+Math.sin(ang)*r/STICK_RADIUS*50)+'%';
   }
-  stickArea.addEventListener('touchend',endStick); stickArea.addEventListener('touchcancel',endStick);
-
-  lookArea.addEventListener('touchstart',e=>{e.preventDefault();startAudioOnce();
-    if(lookTouchId!==null)return;
-    const t=e.changedTouches[0];lookTouchId=t.identifier;
-    lookLastX=t.clientX;lookLastY=t.clientY;
-    lookStartX=t.clientX;lookStartY=t.clientY;lookStartT=performance.now();lookMoved=false;
-  },{passive:false});
-  lookArea.addEventListener('touchmove',e=>{e.preventDefault();
-    for(const t of e.changedTouches){if(t.identifier!==lookTouchId)continue;
-      const dx=t.clientX-lookLastX, dy=t.clientY-lookLastY;
-      lookLastX=t.clientX;lookLastY=t.clientY;
-      if(state==='play')player.a+=dx*TOUCH_SENS;
-      const totalDx=t.clientX-lookStartX, totalDy=t.clientY-lookStartY;
-      if(totalDx*totalDx+totalDy*totalDy>64)lookMoved=true;
+  function resetKnob(knob){knob.style.left='50%';knob.style.top='50%';}
+  // make a stick: zone touch-area, base+knob DOM, anchor, label, and a state object to write into
+  function makeStick(zone,base,knob,lbl,anchor,state,seenKey){
+    placeAnchor(base,anchor);
+    let touchId=null,cx=0,cy=0;
+    const seen=()=>{try{return localStorage.getItem(seenKey)==='1';}catch(e){return false;}};
+    const markSeen=()=>{try{localStorage.setItem(seenKey,'1');}catch(e){} if(lbl)lbl.classList.add('hide');};
+    if(seen()&&lbl)lbl.classList.add('hide');
+    zone.addEventListener('touchstart',e=>{
+      e.preventDefault();startAudioOnce();
+      if(touchId!==null)return;
+      const t=e.changedTouches[0];touchId=t.identifier;cx=t.clientX;cy=t.clientY;
+      // float base to touch point; CSS corner anchoring is dropped while active
+      base.style.left=cx+'px';base.style.top=cy+'px';base.style.right='';base.style.bottom='';
+      base.style.transform='translate(-50%,-50%)';
+      base.classList.add('show');resetKnob(knob);
+      state.active=true;state.x=0;state.y=0; if(state.hasOwnProperty('sprint'))state.sprint=false;
+      markSeen();
+      requestWakeLock();
+    },{passive:false});
+    zone.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      for(const t of e.changedTouches){if(t.identifier!==touchId)continue;
+        const dx=t.clientX-cx, dy=t.clientY-cy;
+        const mag=Math.sqrt(dx*dx+dy*dy);
+        const r=Math.min(STICK_RADIUS,mag); const k=mag>0?r/mag:0;
+        state.x=dx*k/STICK_RADIUS; state.y=dy*k/STICK_RADIUS;
+        if(state.hasOwnProperty('sprint'))state.sprint=(r/STICK_RADIUS)>SPRINT_FRAC;
+        setKnob(knob,dx,dy);
+      }
+    },{passive:false});
+    function end(e){
+      for(const t of e.changedTouches){if(t.identifier!==touchId)continue;
+        touchId=null;state.x=0;state.y=0;state.active=false;
+        if(state.hasOwnProperty('sprint'))state.sprint=false;
+        placeAnchor(base,anchor);base.classList.remove('show');resetKnob(knob);
+      }
     }
-  },{passive:false});
-  function endLook(e){
-    for(const t of e.changedTouches){if(t.identifier!==lookTouchId)continue;
-      const dt=performance.now()-lookStartT;
-      // short, motionless tap = strike
-      if(!lookMoved&&dt<260&&state==='play')shoot();
-      lookTouchId=null;
-    }
+    zone.addEventListener('touchend',end);zone.addEventListener('touchcancel',end);
   }
-  lookArea.addEventListener('touchend',endLook); lookArea.addEventListener('touchcancel',endLook);
-
-  // action buttons — use touchstart for snappiness
+  makeStick(
+    document.getElementById('stickArea'),
+    document.getElementById('stickBase'),
+    document.querySelector('#stickBase .stickKnob'),
+    document.getElementById('stickLbl'),
+    ANCHOR_L,touchMv,'annwn.seenMoveStick');
+  makeStick(
+    document.getElementById('stickAreaR'),
+    document.getElementById('stickBaseR'),
+    document.querySelector('#stickBaseR .stickKnob'),
+    document.getElementById('stickLblR'),
+    ANCHOR_R,lookMv,'annwn.seenTurnStick');
+  // place the labels just below their anchors after layout
+  function positionLabels(){
+    const lblL=document.getElementById('stickLbl');
+    const lblR=document.getElementById('stickLblR');
+    if(lblL){lblL.style.left='80px';lblL.style.bottom='30px';}
+    if(lblR){lblR.style.right='80px';lblR.style.left='auto';lblR.style.bottom='30px';lblR.style.transform='translateX(50%)';}
+  }
+  positionLabels();window.addEventListener('resize',positionLabels);
+  // action buttons — touchstart for snappiness
   function bindBtn(id,fn){const el=document.getElementById(id);if(!el)return;
     const handler=e=>{e.preventDefault();e.stopPropagation();startAudioOnce();fn();};
     el.addEventListener('touchstart',handler,{passive:false});
-    el.addEventListener('click',handler); // also work on hybrids
+    el.addEventListener('click',handler);
   }
-  bindBtn('tStrike',()=>{if(state==='play')shoot();});
+  bindBtn('tStrike',()=>{if(state==='play'){shoot();haptic(8);}});
   bindBtn('tHorn',()=>{if(state==='play')soundHorn();});
   bindBtn('tRead',()=>{if(state==='play')readStone();});
   bindBtn('tPause',()=>{if(state==='play')pauseGame();else if(state==='paused'||state==='codex'||state==='lore')resumeOrClose();});
   bindBtn('tCodex',()=>{if(state==='play')openCodex();else if(state==='codex')closeCodex();});
 }
-function resumeOrClose(){if(state==='codex'){closeCodex();}else if(state==='lore'){closeLore();}else{resumeGame();}}
+function haptic(ms){if(navigator.vibrate){try{navigator.vibrate(ms);}catch(e){}}}
+let wakeLock=null;
+async function requestWakeLock(){if(wakeLock||!('wakeLock' in navigator))return;try{wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}catch(e){}}
+function releaseWakeLock(){if(wakeLock&&wakeLock.release){try{wakeLock.release();}catch(e){}wakeLock=null;}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')pauseGame();});
 
 /* ---------- audio ---------- */
 let AC=null,master=null;
@@ -724,15 +750,21 @@ function update(dt){
   if(keys['KeyA']){mvx+=Math.cos(player.a-Math.PI/2);mvy+=Math.sin(player.a-Math.PI/2);}
   if(keys['KeyD']){mvx+=Math.cos(player.a+Math.PI/2);mvy+=Math.sin(player.a+Math.PI/2);}
   if(keys['ArrowLeft'])player.a-=rot; if(keys['ArrowRight'])player.a+=rot;
-  if(IS_TOUCH&&touchMv.active){
-    // joystick: y-axis (up on screen = forward), x-axis = strafe
-    const fwd=-touchMv.y, str=touchMv.x;
-    mvx+=Math.cos(player.a)*fwd+Math.cos(player.a+Math.PI/2)*str;
-    mvy+=Math.sin(player.a)*fwd+Math.sin(player.a+Math.PI/2)*str;
+  if(IS_TOUCH){
+    if(touchMv.active){
+      // left stick: forward/strafe; screen-up is forward
+      const fwd=-touchMv.y, str=touchMv.x;
+      mvx+=Math.cos(player.a)*fwd+Math.cos(player.a+Math.PI/2)*str;
+      mvy+=Math.sin(player.a)*fwd+Math.sin(player.a+Math.PI/2)*str;
+    }
+    if(lookMv.active){
+      // right stick: turn rate proportional to horizontal extension
+      player.a+=lookMv.x*TOUCH_TURN_RATE*dt;
+    }
   }
   const ml=Math.sqrt(mvx*mvx+mvy*mvy);let moving=false;
-  if(ml>0){mvx/=ml;mvy/=ml;moving=true;bobPhase+=dt*(sprint?14:9);
-    const nx=player.x+mvx*spd,ny=player.y+mvy*spd;
+  if(ml>0){const mag=Math.min(1,ml);mvx/=ml;mvy/=ml;moving=true;bobPhase+=dt*(sprint?14:9);
+    const nx=player.x+mvx*spd*mag,ny=player.y+mvy*spd*mag;
     if(tileAt(nx,player.y)===0)player.x=nx; if(tileAt(player.x,ny)===0)player.y=ny;}
   if(sprint&&moving)player.vig=Math.max(0,player.vig-38*dt); else player.vig=Math.min(100,player.vig+22*dt);
   if(player.horn>0)player.horn=Math.max(0,player.horn-dt);
@@ -776,6 +808,7 @@ function update(dt){
   if(muzzle>0)muzzle--;
 }
 function damage(n){player.hp-=n;updHUD();sfxHurt();addShake(Math.min(9,2+n*0.4));dmgFlash.style.opacity=0.9;setTimeout(()=>dmgFlash.style.opacity=0,110);
+  if(IS_TOUCH)haptic(Math.min(40,12+n));
   if(player.hp<=0){player.hp=0;updHUD();die();}}
 function nextLevel(){if(curLevel+1>=LEVELS.length){winGame();return;}document.exitPointerLock();showStory(curLevel+1);}
 
@@ -1008,7 +1041,7 @@ function showTitle(){state='title';bossbar.classList.remove('show');wrap.classLi
     <p class="firstcap">Wearing the face of the Otherworld's king, you must walk the realm of the dead for a year and a day. Free the shades bound in its mist. Bear witness to the Four Branches of the Mabinogi. Find your way home.</p>
     <button class="btn" id="startBtn">Enter the Mist</button>
     ${cdxHint}
-    <div class="ctrls">${IS_TOUCH?`<b>Left half</b> — virtual stick (push hard to sprint)<br><b>Right half</b> — drag to look, tap to strike<br><b>Horn / Read / Codex</b> — buttons on screen`:`<b>W A S D</b> / Arrows — move &nbsp;·&nbsp; <b>Shift</b> — run &nbsp;·&nbsp; <b>Mouse</b> — look<br><b>Click / Space</b> — strike &nbsp;·&nbsp; <b>F / Right-click</b> — Arawn's Horn<br><b>E</b> — read lorestone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
+    <div class="ctrls">${IS_TOUCH?`<b>Left stick</b> — move &nbsp;·&nbsp; push hard to run<br><b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W A S D</b> / Arrows — move &nbsp;·&nbsp; <b>Shift</b> — run &nbsp;·&nbsp; <b>Mouse</b> — look<br><b>Click / Space</b> — strike &nbsp;·&nbsp; <b>F / Right-click</b> — Arawn's Horn<br><b>E</b> — read lorestone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
   overlay.classList.remove('hidden');
   document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
   const cb=document.getElementById('cdxBtn');if(cb)cb.onclick=()=>{state='play';openCodex();};
@@ -1064,18 +1097,27 @@ function winGame(){state='win';document.exitPointerLock();sfxChime();bossbar.cla
   overlay.classList.remove('hidden');
   document.getElementById('againBtn').onclick=()=>{totalSoulsFreed=0;updHUD();showTitle();};
 }
-function pauseGame(){if(state!=='play')return;state='paused';document.exitPointerLock();showPause();}
-function resumeGame(){if(state!=='paused')return;overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();}
+function pauseGame(){if(state!=='play')return;state='paused';document.exitPointerLock();releaseWakeLock();showPause();}
+function resumeGame(){if(state!=='paused')return;overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();else requestWakeLock();}
 function showPause(){
+  // Touch users see a Turn Speed slider (right-stick rate multiplier 0.5x-2.0x).
+  // Desktop users see Look Sensitivity (mouse rad/px).
+  const sensRow=IS_TOUCH
+    ?`<div class="setrow"><span>Turn Speed</span><input type="range" id="tsens" min="50" max="200" value="${Math.round((TOUCH_TURN_RATE/4.0)*100)}"></div>`
+    :`<div class="setrow"><span>Look Sensitivity</span><input type="range" id="sens" min="8" max="60" value="${Math.round(MOUSE_SENS*10000)}"></div>`;
+  const ctrlsHint=IS_TOUCH
+    ?`<b>Left stick</b> — move (push hard to run) &nbsp;·&nbsp; <b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right &nbsp;·&nbsp; <b>📜</b> — Codex &nbsp;·&nbsp; <b>⏸</b> — pause`
+    :`<b>F</b> / Right-click — sound Arawn's Horn &nbsp;·&nbsp; <b>E</b> — read stone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc / P</b> — pause &nbsp;·&nbsp; <b>M</b> — mute`;
   scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">PAUSED<span class="sub">Annwn holds its breath</span></h1>
     <button class="btn" id="resumeBtn">Resume</button>
-    <div class="setrow"><span>Look Sensitivity</span><input type="range" id="sens" min="8" max="60" value="${Math.round(MOUSE_SENS*10000)}"></div>
+    ${sensRow}
     <div class="setrow"><span>Sound</span><button class="tg ${muted?'off':''}" id="muteBtn">${muted?'Muted':'On'}</button></div>
     <div class="setrow"><span>Resolution</span><button class="tg ${RES_PINNED?'':'off'}" id="resPin">${RES_PINNED?'Pinned':'Adaptive'}</button><span style="opacity:.65">${(RES_SCALE*100|0)}% · ${RES_W}×${RES_H} · ${frameEMA.toFixed(1)}ms</span></div>
-    <div class="ctrls" style="margin-top:26px"><b>F</b> / Right-click — sound Arawn's Horn &nbsp;·&nbsp; <b>E</b> — read stone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc / P</b> — pause &nbsp;·&nbsp; <b>M</b> — mute</div>`;
+    <div class="ctrls" style="margin-top:26px">${ctrlsHint}</div>`;
   overlay.classList.remove('hidden');
   document.getElementById('resumeBtn').onclick=resumeGame;
-  document.getElementById('sens').oninput=e=>{MOUSE_SENS=(+e.target.value)/10000;};
+  const sensEl=document.getElementById('sens');if(sensEl)sensEl.oninput=e=>{MOUSE_SENS=(+e.target.value)/10000;};
+  const tsensEl=document.getElementById('tsens');if(tsensEl)tsensEl.oninput=e=>{const m=(+e.target.value)/100;TOUCH_TURN_RATE=4.0*m;try{localStorage.setItem('annwn.touchSens',m+'');}catch(err){}};
   document.getElementById('muteBtn').onclick=e=>{toggleMute();e.target.textContent=muted?'Muted':'On';e.target.classList.toggle('off',muted);};
   document.getElementById('resPin').onclick=e=>{RES_PINNED=!RES_PINNED;e.target.textContent=RES_PINNED?'Pinned':'Adaptive';e.target.classList.toggle('off',!RES_PINNED);};
 }
