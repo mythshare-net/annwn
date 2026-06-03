@@ -92,10 +92,11 @@
   /* stick zones — split the screen in half; sticks float to first touch in their zone */
   #stickArea{position:absolute;left:0;bottom:0;width:50%;height:70%;z-index:12;touch-action:none}
   #stickAreaR{position:absolute;right:0;bottom:0;width:50%;height:70%;z-index:12;touch-action:none}
-  /* anchors — always visible at rest so the player can see where to place thumbs */
-  .stickBase{position:absolute;width:140px;height:140px;border-radius:50%;border:2px solid rgba(201,162,39,.45);background:rgba(8,12,12,.32);box-shadow:0 0 24px rgba(0,0,0,.5) inset;pointer-events:none;transform:translate(-50%,-50%);opacity:.28;transition:opacity .18s;z-index:13}
-  .stickBase.show{opacity:.85}
-  .stickKnob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin-left:-30px;margin-top:-30px;border-radius:50%;background:rgba(201,162,39,.55);box-shadow:0 0 18px rgba(201,162,39,.5)}
+  /* anchors — visible on first play (opacity .22), then fade to almost-invisible once the player has used each stick */
+  .stickBase{position:absolute;width:120px;height:120px;border-radius:50%;border:1px solid rgba(201,162,39,.35);background:rgba(8,12,12,.18);box-shadow:0 0 18px rgba(0,0,0,.4) inset;pointer-events:none;transform:translate(-50%,-50%);opacity:.22;transition:opacity .45s;z-index:13}
+  .stickBase.faded{opacity:.04}
+  .stickBase.show{opacity:.8;transition:opacity .12s}
+  .stickKnob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin-left:-26px;margin-top:-26px;border-radius:50%;background:rgba(201,162,39,.55);box-shadow:0 0 14px rgba(201,162,39,.4)}
   /* labels under the anchors — fade after first use */
   .stickLbl{position:absolute;font-family:'Cinzel',serif;font-size:10px;letter-spacing:.32em;color:var(--gold);text-shadow:0 2px 4px #000;transform:translateX(-50%);pointer-events:none;z-index:13;opacity:.8;transition:opacity .8s}
   .stickLbl.hide{opacity:0}
@@ -547,8 +548,8 @@ if(IS_TOUCH){
     placeAnchor(base,anchor);
     let touchId=null,cx=0,cy=0;
     const seen=()=>{try{return localStorage.getItem(seenKey)==='1';}catch(e){return false;}};
-    const markSeen=()=>{try{localStorage.setItem(seenKey,'1');}catch(e){} if(lbl)lbl.classList.add('hide');};
-    if(seen()&&lbl)lbl.classList.add('hide');
+    const markSeen=()=>{try{localStorage.setItem(seenKey,'1');}catch(e){} if(lbl)lbl.classList.add('hide'); base.classList.add('faded');};
+    if(seen()){if(lbl)lbl.classList.add('hide'); base.classList.add('faded');}
     zone.addEventListener('touchstart',e=>{
       e.preventDefault();startAudioOnce();
       if(touchId!==null)return;
