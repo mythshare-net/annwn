@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANNWN — The Hunt of Arawn</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=EB+Garamond:ital@0;1&display=swap');
+  :root{--bone:#e8dcc0;--blood:#8a1414;--gold:#c9a227;--mist:#5a6b6e;--ink:#0a0c0d;--ember:#d4621a;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#000;overflow:hidden;font-family:'EB Garamond',serif;color:var(--bone)}
+  #wrap{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0d1413 0%,#000 80%)}
+  canvas#game{display:block;image-rendering:pixelated;box-shadow:0 0 80px rgba(0,0,0,.9),0 0 0 1px rgba(201,162,39,.15)}
+
+  #cross{position:absolute;top:50%;left:50%;width:22px;height:22px;transform:translate(-50%,-50%);pointer-events:none;z-index:7;opacity:.8;transition:transform .08s}
+  #cross::before,#cross::after{content:"";position:absolute;background:rgba(232,220,192,.7);box-shadow:0 0 4px #000}
+  #cross::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
+  #cross::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
+  #cross.hit{transform:translate(-50%,-50%) scale(1.5)}
+  #cross.hit::before,#cross.hit::after{background:#ffd86b;box-shadow:0 0 8px #c9201f}
+
+  #mini{position:absolute;top:16px;right:16px;z-index:7;border:1px solid rgba(201,162,39,.3);background:rgba(6,9,10,.55);box-shadow:0 4px 24px rgba(0,0,0,.6);image-rendering:pixelated}
+
+  #bossbar{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:min(46vw,420px);z-index:7;opacity:0;transition:opacity .4s;pointer-events:none;text-align:center}
+  #bossbar.show{opacity:1}
+  #bossbar .nm{font-family:'Cinzel',serif;font-size:12px;letter-spacing:.28em;color:var(--blood);text-shadow:0 0 10px rgba(138,20,20,.7),0 2px 3px #000;margin-bottom:5px;text-transform:uppercase}
+  #bossbar .track{height:9px;background:rgba(0,0,0,.6);border:1px solid rgba(138,20,20,.5)}
+  #bossbar .fill{height:100%;background:linear-gradient(90deg,#5a0c0c,#c9201f);transition:width .15s}
+  #bossbar.rage .fill{background:linear-gradient(90deg,#c9201f,#ff7a2a)}
+
+  #hud{position:absolute;left:0;right:0;bottom:0;height:70px;display:flex;align-items:center;justify-content:center;gap:46px;padding:0 28px;background:linear-gradient(180deg,transparent,rgba(8,10,11,.92));pointer-events:none;font-family:'Cinzel',serif}
+  .stat{display:flex;flex-direction:column;align-items:center;text-shadow:0 2px 6px #000;min-width:74px}
+  .stat .lbl{font-size:9px;letter-spacing:.25em;color:var(--mist);text-transform:uppercase;margin-top:3px}
+  .stat .val{font-size:25px;font-weight:900;line-height:1}
+  .bar{width:74px;height:6px;background:rgba(0,0,0,.5);margin-top:6px;border:1px solid rgba(255,255,255,.08)}
+  .bar i{display:block;height:100%;transition:width .18s}
+  #hp .val{color:var(--blood)} #hp .bar i{background:linear-gradient(90deg,#5a0c0c,#c9201f)}
+  #vig .val{color:#3f9c8a} #vig .bar i{background:linear-gradient(90deg,#1d5249,#46c2ac)}
+  #soul .val{color:var(--gold)} #lvl .val{color:var(--bone)}
+
+  #msg{position:absolute;top:60px;left:50%;transform:translateX(-50%);font-family:'Cinzel',serif;font-size:15px;letter-spacing:.18em;color:var(--gold);text-shadow:0 0 12px rgba(201,162,39,.6),0 2px 4px #000;opacity:0;transition:opacity .5s;text-align:center;pointer-events:none;max-width:80vw;z-index:7}
+  #msg.show{opacity:1}
+
+  #overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(15,22,21,.95),rgba(0,0,0,.98));z-index:20;text-align:center;padding:6vw}
+  #overlay.hidden{display:none}
+  .scroll{max-width:680px}
+  .scroll h1{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(34px,7vw,76px);color:var(--bone);letter-spacing:.06em;line-height:.95;text-shadow:0 0 40px rgba(138,20,20,.5)}
+  .scroll h1 .sub{display:block;font-size:.3em;font-weight:500;letter-spacing:.5em;color:var(--gold);margin-top:18px}
+  .scroll p{font-size:clamp(15px,2.2vw,20px);line-height:1.8;margin:26px auto;color:#cabfa6;font-style:italic;max-width:560px}
+  .scroll .firstcap::first-letter{font-family:'Cinzel',serif;font-size:3.4em;float:left;line-height:.8;padding:6px 10px 0 0;color:var(--gold)}
+  .btn{font-family:'Cinzel',serif;font-weight:700;font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);background:var(--gold);border:none;padding:16px 42px;margin-top:14px;cursor:pointer;border-radius:2px;box-shadow:0 0 30px rgba(201,162,39,.35);transition:transform .15s,box-shadow .15s}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(201,162,39,.6)}
+  .ctrls{margin-top:30px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:.16em;color:var(--mist);text-transform:uppercase;line-height:2.2}
+  .ctrls b{color:var(--bone)}
+  #dmgflash{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(138,20,20,.6));opacity:0;pointer-events:none;z-index:10;transition:opacity .12s}
+  #hornflash{position:absolute;inset:0;background:radial-gradient(circle at center,rgba(201,162,39,.55),transparent 62%);opacity:0;pointer-events:none;z-index:10;transition:opacity .4s}
+  #vig.ready .val{text-shadow:0 0 13px #58e0c8,0 2px 6px #000}
+  .setrow{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:18px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:var(--mist);text-transform:uppercase}
+  .setrow input[type=range]{accent-color:var(--gold);width:170px}
+  .tg{cursor:pointer;border:1px solid rgba(201,162,39,.5);color:var(--bone);background:rgba(201,162,39,.08);padding:6px 16px;border-radius:2px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em}
+  .tg.off{opacity:.45}
+  #prompt{position:absolute;top:64%;left:50%;transform:translateX(-50%);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.22em;color:var(--bone);text-shadow:0 0 10px rgba(201,162,39,.7),0 2px 4px #000;background:rgba(6,9,10,.55);border:1px solid rgba(201,162,39,.4);padding:6px 14px;border-radius:2px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:7;text-transform:uppercase}
+  #prompt.show{opacity:1}
+  #prompt b{color:var(--gold);margin-right:6px}
+  #codexchip{position:absolute;right:18px;bottom:8px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:.22em;color:var(--gold);text-shadow:0 2px 4px #000;opacity:0;transition:opacity .4s;pointer-events:none;z-index:8;text-transform:uppercase}
+  #codexchip.show{opacity:.75}
+  .codex{display:flex;flex-direction:column;max-width:920px;width:100%;text-align:left}
+  .codex h1{text-align:center;margin-bottom:6px}
+  .codex .branches{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
+  .codex .col{border:1px solid rgba(201,162,39,.2);background:rgba(6,9,10,.4);padding:12px;min-height:160px}
+  .codex .col h3{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.22em;color:var(--gold);margin-bottom:10px;text-transform:uppercase;text-align:center;border-bottom:1px solid rgba(201,162,39,.18);padding-bottom:8px}
+  .codex .entry{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.12em;color:var(--bone);padding:4px 0;cursor:pointer;text-transform:uppercase;border-bottom:1px dotted rgba(201,162,39,.08)}
+  .codex .entry:hover{color:var(--gold)}
+  .codex .entry.locked{color:var(--mist);font-style:italic;cursor:default;text-transform:none;letter-spacing:.06em}
+  .codex .entry.active{color:var(--gold);text-shadow:0 0 8px rgba(201,162,39,.6)}
+  .codex .reader{margin-top:22px;padding:18px;border:1px solid rgba(201,162,39,.25);background:rgba(6,9,10,.55);min-height:120px}
+  .codex .reader h2{font-family:'Cinzel',serif;font-size:18px;letter-spacing:.14em;color:var(--gold);margin-bottom:12px;text-transform:uppercase}
+  .codex .reader p{font-family:'EB Garamond',serif;font-style:italic;color:#cabfa6;font-size:16px;line-height:1.7;margin:0}
+  .codex .reader.empty p{color:var(--mist);text-align:center}
+  .codex .progress{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.22em;color:var(--mist);text-align:center;margin-top:10px;text-transform:uppercase}
+  #vignette{position:absolute;inset:0;pointer-events:none;z-index:8;box-shadow:inset 0 0 200px 40px rgba(0,0,0,.85)}
+  #wrap.lowhp #vignette{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:inset 0 0 200px 40px rgba(0,0,0,.85)}50%{box-shadow:inset 0 0 200px 70px rgba(120,12,12,.7)}}
+  .grain{position:absolute;inset:0;pointer-events:none;z-index:9;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div id="vignette"></div>
+  <div class="grain"></div>
+  <div id="dmgflash"></div>
+  <div id="hornflash"></div>
+  <div id="cross"></div>
+  <canvas id="mini" width="120" height="120"></canvas>
+  <div id="bossbar"><div class="nm">Boss</div><div class="track"><i class="fill" style="width:100%"></i></div></div>
+  <div id="msg"></div>
+  <div id="prompt"><b>E</b> Read the stone</div>
+  <div id="codexchip">📜 TAB · Codex</div>
+  <div id="hud">
+    <div class="stat" id="hp"><span class="val">100</span><span class="lbl">Life</span><span class="bar"><i style="width:100%"></i></span></div>
+    <div class="stat" id="vig"><span class="val">100</span><span class="lbl">Vigour</span><span class="bar"><i style="width:100%"></i></span></div>
+    <div class="stat" id="lvl"><span class="val">I</span><span class="lbl">Annwn</span></div>
+    <div class="stat" id="soul"><span class="val">0</span><span class="lbl">Souls</span></div>
+  </div>
+  <div id="overlay"><div class="scroll" id="scrollContent"></div></div>
+</div>
+
+<script>
+"use strict";
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+const mini=document.getElementById('mini'), mctx=mini.getContext('2d');
+const overlay=document.getElementById('overlay'), scrollC=document.getElementById('scrollContent');
+const msgEl=document.getElementById('msg'), dmgFlash=document.getElementById('dmgflash');
+const hornFlash=document.getElementById('hornflash');
+const wrap=document.getElementById('wrap'), crossEl=document.getElementById('cross');
+const bossbar=document.getElementById('bossbar'), bossFill=bossbar.querySelector('.fill');
+
+let RES_W=0,RES_H=0,img=null,buf=null,zbuf=null;
+let RES_BASE_W=0,RES_BASE_H=0,RES_SCALE=1,RES_CSS_W=0,RES_CSS_H=0; // adaptive resolution
+let RES_PINNED=false;
+function resize(){
+  const availW=Math.min(window.innerWidth,1280), availH=Math.min(window.innerHeight,760);
+  RES_CSS_W=availW; RES_CSS_H=availH;
+  const factor=Math.max(2,Math.ceil(availW/480));
+  RES_BASE_W=Math.floor(availW/factor); RES_BASE_H=Math.floor(availH/factor);
+  applyResolution();
+}
+function applyResolution(){
+  RES_W=Math.max(120,Math.floor(RES_BASE_W*RES_SCALE));
+  RES_H=Math.max(80,Math.floor(RES_BASE_H*RES_SCALE));
+  cv.width=RES_W; cv.height=RES_H;
+  cv.style.width=RES_CSS_W+'px'; cv.style.height=RES_CSS_H+'px';
+  img=ctx.createImageData(RES_W,RES_H); buf=new Uint32Array(img.data.buffer);
+  zbuf=new Float32Array(RES_W);
+}
+window.addEventListener('resize',resize); resize();
+const PK=(r,g,b)=>(255<<24)|((b&255)<<16)|((g&255)<<8)|(r&255);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+/* ---------- textures ---------- */
+const TT=64;
+function makeWall(br,bg,bb){
+  const a=new Uint32Array(TT*TT);
+  for(let y=0;y<TT;y++)for(let x=0;x<TT;x++){
+    let r=br,g=bg,b=bb; const n=(Math.random()*26-13); r+=n;g+=n;b+=n;
+    const row=Math.floor(y/16), off=(row%2)?12:0;
+    if((y%16<2)||(((x+off)%24)<2)){r*=0.45;g*=0.45;b*=0.5;}
+    else{const v=Math.sin(x*0.6)*4;r+=v;g+=v;b+=v;}
+    a[y*TT+x]=PK(clamp(r,0,255),clamp(g,0,255),clamp(b,0,255));
+  } return a;
+}
+function makeFloor(){
+  const a=new Uint32Array(TT*TT);
+  for(let y=0;y<TT;y++)for(let x=0;x<TT;x++){
+    let r=20,g=30,b=27; const n=(Math.random()*18-9); r+=n;g+=n;b+=n;
+    if((x%32<2)||(y%32<2)){r*=0.6;g*=0.6;b*=0.6;}
+    if(Math.abs(((x*7+y*3)%37)-18)<1){r*=0.5;g*=0.5;b*=0.5;}
+    a[y*TT+x]=PK(clamp(r,0,255),clamp(g,0,255),clamp(b,0,255));
+  } return a;
+}
+const WALL_TEX=[null,makeWall(74,82,76),makeWall(92,42,52)];
+const FLOOR_TEX=makeFloor();
+
+/* ---------- sprites ---------- */
+function sprite(w,h,draw){
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const cc=c.getContext('2d');cc.clearRect(0,0,w,h);draw(cc,w,h);
+  const d=cc.getImageData(0,0,w,h);return {w,h,data:new Uint32Array(d.data.buffer)};
+}
+function rr(cc,x,y,w,h,r){cc.beginPath();cc.moveTo(x+r,y);cc.arcTo(x+w,y,x+w,y+h,r);cc.arcTo(x+w,y+h,x,y+h,r);cc.arcTo(x,y+h,x,y,r);cc.arcTo(x,y,x+w,y,r);cc.fill();}
+function tri(cc,a,b,c,d,e,f){cc.beginPath();cc.moveTo(a,b);cc.lineTo(c,d);cc.lineTo(e,f);cc.closePath();cc.fill();}
+function houndSprite(body,ear){
+  return sprite(48,48,(cc,w,h)=>{
+    cc.fillStyle=body;rr(cc,w*0.22,h*0.42,w*0.56,h*0.40,7);
+    cc.beginPath();cc.arc(w*0.5,h*0.40,w*0.20,0,7);cc.fill();
+    cc.fillStyle=ear;tri(cc,w*0.34,h*0.30,w*0.26,h*0.12,w*0.46,h*0.24);tri(cc,w*0.66,h*0.30,w*0.74,h*0.12,w*0.54,h*0.24);
+    cc.fillStyle=body;tri(cc,w*0.44,h*0.45,w*0.5,h*0.60,w*0.56,h*0.45);
+    cc.fillStyle='#fff6d2';cc.beginPath();cc.arc(w*0.43,h*0.38,w*0.035,0,7);cc.arc(w*0.57,h*0.38,w*0.035,0,7);cc.fill();
+    cc.fillStyle=body;rr(cc,w*0.26,h*0.78,w*0.10,h*0.16,3);rr(cc,w*0.64,h*0.78,w*0.10,h*0.16,3);
+  });
+}
+const SPR={
+  hound:houndSprite('#1c1f21','#a81818'),
+  white:houndSprite('#d7d2c4','#a81818'),
+  boss:sprite(64,64,(cc,w,h)=>{
+    cc.fillStyle='#15110c';rr(cc,w*0.20,h*0.40,w*0.60,h*0.46,8);
+    cc.beginPath();cc.arc(w*0.5,h*0.38,w*0.18,0,7);cc.fill();
+    cc.strokeStyle='#6b5a3a';cc.lineWidth=w*0.03;cc.lineCap='round';
+    [-1,1].forEach((s)=>{cc.beginPath();
+      cc.moveTo(w*(0.5+0.10*s),h*0.26);cc.lineTo(w*(0.5+0.22*s),h*0.10);
+      cc.moveTo(w*(0.5+0.16*s),h*0.18);cc.lineTo(w*(0.5+0.30*s),h*0.16);
+      cc.moveTo(w*(0.5+0.13*s),h*0.21);cc.lineTo(w*(0.5+0.05*s),h*0.06);cc.stroke();});
+    cc.fillStyle='#ff5a2a';cc.shadowColor='#ff7a3a';cc.shadowBlur=8;
+    cc.beginPath();cc.arc(w*0.43,h*0.37,w*0.045,0,7);cc.arc(w*0.57,h*0.37,w*0.045,0,7);cc.fill();
+    cc.shadowBlur=0;cc.fillStyle='#a81818';
+    tri(cc,w*0.30,h*0.28,w*0.20,h*0.06,w*0.42,h*0.22);tri(cc,w*0.70,h*0.28,w*0.80,h*0.06,w*0.58,h*0.22);
+    cc.fillStyle='#15110c';rr(cc,w*0.24,h*0.82,w*0.12,h*0.16,3);rr(cc,w*0.64,h*0.82,w*0.12,h*0.16,3);
+  }),
+  soul:sprite(40,40,(cc,w,h)=>{
+    const g=cc.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+    g.addColorStop(0,'rgba(255,246,210,0.95)');g.addColorStop(0.4,'rgba(201,162,39,0.55)');g.addColorStop(1,'rgba(201,162,39,0)');
+    cc.fillStyle=g;cc.beginPath();cc.arc(w/2,h/2,w/2,0,7);cc.fill();
+    cc.fillStyle='rgba(255,250,230,0.95)';cc.beginPath();cc.arc(w/2,h*0.45,w*0.10,0,7);cc.fill();
+  }),
+  portal:sprite(48,64,(cc,w,h)=>{
+    const g=cc.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+    g.addColorStop(0,'rgba(150,220,255,0.92)');g.addColorStop(0.5,'rgba(50,110,180,0.5)');g.addColorStop(1,'rgba(20,40,90,0)');
+    cc.fillStyle=g;cc.save();cc.translate(w/2,h/2);cc.scale(0.6,1);cc.beginPath();cc.arc(0,0,w/2,0,7);cc.fill();cc.restore();
+  }),
+  flame:sprite(32,44,(cc,w,h)=>{
+    const g=cc.createRadialGradient(w/2,h*0.6,0,w/2,h*0.6,w*0.6);
+    g.addColorStop(0,'rgba(255,240,180,0.98)');g.addColorStop(0.35,'rgba(255,150,40,0.85)');
+    g.addColorStop(0.7,'rgba(190,50,15,0.45)');g.addColorStop(1,'rgba(120,20,10,0)');
+    cc.fillStyle=g;cc.beginPath();cc.ellipse(w/2,h*0.55,w*0.42,h*0.5,0,0,7);cc.fill();
+    cc.fillStyle='rgba(255,250,225,0.95)';cc.beginPath();cc.ellipse(w/2,h*0.55,w*0.13,h*0.26,0,0,7);cc.fill();
+    cc.fillStyle='#2a1d10';cc.fillRect(w*0.44,h*0.78,w*0.12,h*0.22);
+  }),
+  stone:sprite(40,48,(cc,w,h)=>{
+    // cairn body — three stacked stones
+    cc.fillStyle='#3a3d3a';rr(cc,w*0.12,h*0.62,w*0.76,h*0.34,8);
+    cc.fillStyle='#4a4d48';rr(cc,w*0.22,h*0.40,w*0.56,h*0.30,7);
+    cc.fillStyle='#525549';rr(cc,w*0.30,h*0.22,w*0.40,h*0.24,6);
+    // mossy highlight
+    cc.fillStyle='rgba(80,108,72,0.55)';cc.fillRect(w*0.16,h*0.62,w*0.20,h*0.04);
+    cc.fillRect(w*0.58,h*0.40,w*0.16,h*0.03);
+    // shadow at base
+    cc.fillStyle='rgba(0,0,0,0.45)';cc.fillRect(w*0.10,h*0.94,w*0.80,h*0.05);
+    // rune glow on top stone
+    const g=cc.createRadialGradient(w/2,h*0.30,0,w/2,h*0.30,w*0.32);
+    g.addColorStop(0,'rgba(255,236,160,0.95)');g.addColorStop(0.5,'rgba(201,162,39,0.55)');g.addColorStop(1,'rgba(201,162,39,0)');
+    cc.fillStyle=g;cc.beginPath();cc.arc(w/2,h*0.30,w*0.30,0,7);cc.fill();
+    // engraved rune (an awen-style ᚠ-like triple stroke)
+    cc.strokeStyle='rgba(255,246,210,0.95)';cc.lineWidth=Math.max(1,w*0.04);cc.lineCap='round';
+    cc.beginPath();cc.moveTo(w*0.42,h*0.40);cc.lineTo(w*0.5,h*0.20);cc.moveTo(w*0.5,h*0.20);cc.lineTo(w*0.58,h*0.40);cc.moveTo(w*0.5,h*0.20);cc.lineTo(w*0.5,h*0.42);cc.stroke();
+  }),
+  stoneRead:sprite(40,48,(cc,w,h)=>{
+    cc.fillStyle='#2e312e';rr(cc,w*0.12,h*0.62,w*0.76,h*0.34,8);
+    cc.fillStyle='#3a3d38';rr(cc,w*0.22,h*0.40,w*0.56,h*0.30,7);
+    cc.fillStyle='#42453a';rr(cc,w*0.30,h*0.22,w*0.40,h*0.24,6);
+    cc.fillStyle='rgba(60,80,55,0.45)';cc.fillRect(w*0.16,h*0.62,w*0.20,h*0.04);
+    cc.fillStyle='rgba(0,0,0,0.45)';cc.fillRect(w*0.10,h*0.94,w*0.80,h*0.05);
+    // faded rune
+    cc.strokeStyle='rgba(180,170,140,0.45)';cc.lineWidth=Math.max(1,w*0.04);cc.lineCap='round';
+    cc.beginPath();cc.moveTo(w*0.42,h*0.40);cc.lineTo(w*0.5,h*0.20);cc.moveTo(w*0.5,h*0.20);cc.lineTo(w*0.58,h*0.40);cc.moveTo(w*0.5,h*0.20);cc.lineTo(w*0.5,h*0.42);cc.stroke();
+  })
+};
+
+/* ---------- codex / journal ----------
+ The codex is a flat map of id -> {branch, title, body, unlocked}.
+ Entries are seeded once from level data + a fixed set of soul/boss entries, then
+ merged with whatever the player has previously unlocked in localStorage. */
+const CODEX={};
+const BRANCHES=["I","II","III","IV"];
+const BRANCH_TITLES={I:"Pwyll · The First Branch",II:"Branwen · The Second Branch",III:"Manawydan · The Third Branch",IV:"Math · The Fourth Branch"};
+function codexSeed(){
+  // Seed from lorestones in each level
+  LEVELS.forEach((L,i)=>{
+    (L.lorestones||[]).forEach(s=>{CODEX[s.id]={branch:BRANCHES[i],title:s.title,body:s.body,unlocked:false};});
+    // boss entry
+    if(L.bossName){const id="boss_"+BRANCHES[i].toLowerCase();
+      CODEX[id]={branch:BRANCHES[i],title:L.bossName.split('·')[0].trim(),body:L.bossDeath||"",unlocked:false};}
+    // soul-pool entries — unlocked when that named soul is freed
+    (L.soulPool||[]).forEach(s=>{
+      const id="soul_"+BRANCHES[i].toLowerCase()+"_"+s.name.toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,32);
+      CODEX[id]={branch:BRANCHES[i],title:s.name,body:'"'+s.line+'"  — a shade in '+L.title,unlocked:false};
+    });
+  });
+}
+function codexLoad(){try{const raw=localStorage.getItem('annwn.codex');if(!raw)return;
+  const data=JSON.parse(raw);if(!data)return;
+  for(const k in data){if(CODEX[k])CODEX[k].unlocked=!!data[k];}}catch(e){}}
+function codexSave(){try{const out={};for(const k in CODEX)if(CODEX[k].unlocked)out[k]=1;
+  localStorage.setItem('annwn.codex',JSON.stringify(out));}catch(e){}}
+function codexUnlock(id){if(!CODEX[id]||CODEX[id].unlocked)return false;CODEX[id].unlocked=true;codexSave();showCodexChip();return true;}
+function soulCodexId(branch,name){return "soul_"+branch.toLowerCase()+"_"+name.toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,32);}
+
+/* ---------- bardic verses on intro & death ---------- */
+const VERSES={
+  death:[
+    "The mist closes. The mist remembers. The mist forgets.",
+    "Three blows of the horn, and none came.",
+    "I went into Annwn, and Annwn into me.",
+    "The crimson-eared pack is patient — it knows our names.",
+    "Not by a single blow, this time. Not by a single blow.",
+    "What was given in Glyn Cuch is taken at the ford.",
+    "The cauldron's breath rose, and we were uncounted.",
+    "Three songs of Taliesin would not unbind this mist."
+  ]
+};
+
+/* ---------- levels — the Four Branches of the Mabinogi ---------- */
+const LEVELS=[
+{name:"I",title:"Glyn Cuch — The First Branch",branch:"Pwyll, Prince of Dyfed",tint:[26,40,38],
+ bossName:"Hafgan · King at the Ford",
+ bossDeath:"Hafgan falls in a single blow. Arawn's debt is paid.",
+ story:`At Glyn Cuch you set your hounds upon a stag another pack had brought down — and that pack was Arawn's, lord of Annwn. To make amends you wear his face for a year and a day, and at the year's hinge must strike his rival Hafgan one blow only at the ford. The grey hounds with crimson ears bay beyond the gate. Walk the Otherworld. Free the shades bound in its mists.`,
+ verse:`"The mist took me at Glyn Cuch /\nere ever I heard the horn." — A bard of Dyfed`,
+ grid:["1111111111111111","1......L.......1","1..S...11......1","1......11..S...1","1.L............1","11111....11....1","1...1....11.L..1","1.E.1.........S1","1...1....1111..1","1...L....1..1..1","1...S....1..1.E1","1........1..1..1","1..11111.1..1..1","1.........B....1","1......S......31","1111111111111111"],
+ torches:[[2,1],[13,1],[2,4],[13,4],[7,9],[13,7],[5,13]], start:{x:2.5,y:2.5,a:0},
+ lorestones:[
+   {x:7,y:1,id:"i_glyncuch",title:"Glyn Cuch",body:"In the wood of Glyn Cuch, Pwyll loosed his hounds upon a stag — but found another pack already at the kill, white of body with red ears, the colour of Annwn. The huntsman of that pack was Arawn, king of the Otherworld, and Pwyll's rough courtesy began the bargain that bound him here."},
+   {x:1,y:4,id:"i_cwnannwn",title:"Cŵn Annwn",body:"The Hounds of Annwn are white with crimson ears, and their baying is heard most clear in autumn skies above the marches of Wales. To hear them too near is a death-omen; to see them is to know that the Otherworld hunts close behind. They are the only hounds that the dead obey."},
+   {x:12,y:6,id:"i_arawn_bargain",title:"Arawn's Bargain",body:"For a year and a day Pwyll wore Arawn's shape and held his throne, sharing nothing with the queen of Annwn but a courteous bed. So the friendship of the two kings was forged — and Pwyll earned the name Pen Annwn, Head of the Otherworld, by which he was known thereafter."},
+   {x:4,y:9,id:"i_hafgan",title:"Hafgan, King at the Ford",body:"Arawn's rival ruled the other half of Annwn and could not be killed by any blow but the first. A second stroke would heal him whole. At year's end Pwyll met him at the ford and gave the one stroke that was needed. Annwn was made one realm under Arawn — and Pwyll went home."}
+ ],
+ soulPool:[
+   {name:"Eilonwy of the Mist",line:"My lord, the horn never came."},
+   {name:"Idris the Forester",line:"I saw the white pack first — too late, too late."},
+   {name:"Glyn, master of hounds",line:"They had red ears. I should have known."},
+   {name:"Rhiwallon the bard",line:"Sing me home, prince. Sing me home."},
+   {name:"Tegid of Dyfed",line:"The year is almost done, is it not?"},
+   {name:"Mair, milkmaid of Narberth",line:"They say the king wore another's face."},
+   {name:"Cadell the Old",line:"I never crossed the ford. I never crossed the ford."},
+   {name:"Bleddyn the Huntsman",line:"Arawn's pack runs faster than ours."}
+ ]},
+{name:"II",title:"Branwen's Hall — The Second Branch",branch:"Branwen ferch Llŷr",tint:[44,20,28],
+ bossName:"Efnysien · Breaker of the Cauldron",
+ bossDeath:"Efnysien shatters the Pair Dadeni from within — the cauldron is broken.",
+ story:`The Pair Dadeni — the Cauldron of Rebirth — was carried to Ireland for Branwen's wedding, and into it the slain are cast to rise again mute and deathless. Now her brother Bran the Blessed lies wounded by a poisoned spear, and only Efnysien's last act will break the cauldron's curse. Press on. The Irish hall lies past the river Llinon.`,
+ verse:`"Reborn from the cauldron, no tongue was left them /\nto name their own kin." — Llyfr Coch Hergest, II`,
+ grid:["1111111111111111","1......W..L....1","1.S..2222..S...1","1....2..2......1","1.L..2..2..222.1","1.E..2..2..2.2.1","1....2..2..2.2.1","1.........L.2.S1","1.2222.222.2.2.1","1.2....B.....2.1","1.2.S..2222..2.1","1.2.L..2..W..2.1","1.222222..2222.1","1......S.E.....1","1.............31","1111111111111111"],
+ torches:[[1,1],[14,1],[1,7],[12,7],[1,13],[14,13]], start:{x:2.5,y:2.5,a:0},
+ lorestones:[
+   {x:10,y:1,id:"ii_bran",title:"Bran the Blessed",body:"Bendigeidfran, Bran the Blessed, was high king of the Island of the Mighty — so vast he could wade the Irish Sea with his fleet at his side. Wounded in the foot by a poisoned spear at Branwen's war, he ordered his head cut from his body and borne home. For seven years it sang to his companions at Harlech, and longer still at Gwales."},
+   {x:2,y:4,id:"ii_starling",title:"Branwen's Starling",body:"Wed to Matholwch of Ireland and beaten daily in his kitchens, Branwen taught a starling words and sent it across the sea to her brother. So Bran came in war — and Branwen, when at last she returned to Wales, looked at the two slaughtered hosts and her heart broke in her breast on the banks of the Alaw."},
+   {x:11,y:7,id:"ii_pair_dadeni",title:"The Pair Dadeni",body:"The Cauldron of Rebirth was given by Bran to Matholwch in apology. Cast a slain man into it that night and he rises on the morrow whole — but mute, and remembering nothing of who he was. So the Irish fought on past death, and the Welsh could not win, until Efnysien hid among the slain and burst the cauldron with his own heart."},
+   {x:3,y:11,id:"ii_efnysien",title:"Efnysien",body:"Half-brother to Bran and Branwen, Efnysien's spite began the war: he maimed Matholwch's horses at the wedding feast, and threw Branwen's infant son Gwern into the hall-fire. Yet at the end it was his body alone that broke the cauldron and saved what remained of the Island of the Mighty."}
+ ],
+ soulPool:[
+   {name:"Gwern, the child cast to the fire",line:"Mother. Mother."},
+   {name:"Heilyn fab Gwyn",line:"We carried his head to Harlech, and it sang."},
+   {name:"Pryderi, who returned",line:"Seven of us came home. Only seven."},
+   {name:"Manawydan fab Llŷr",line:"My brother's wound would not close."},
+   {name:"Taliesin, before he was a bard",line:"At Gwales we forgot a long time."},
+   {name:"A drummer of Matholwch",line:"I died in Ireland. I rose without tongue."},
+   {name:"Branwen's starling",line:"Across the sea, across the sea."},
+   {name:"Ynawg of the Seven",line:"Do not open the door to Cornwall."}
+ ]},
+{name:"III",title:"The Mist of Dyfed — The Third Branch",branch:"Manawydan fab Llŷr",tint:[22,30,40],
+ bossName:"Llwyd ap Cil Coed · The Enchanter",
+ bossDeath:"Llwyd unweaves the mist — Dyfed returns to the green world.",
+ story:`Returned from Ireland, you sit at Gorsedd Arberth with Pryderi, Cigfa and Rhiannon. A peal of thunder, and when the mist lifts every house, every herd, every soul in Dyfed is gone. Llwyd ap Cil Coed has cast this enchantment in vengeance for an old slight to Gwawl ap Clud. Free what remains, find the mouse-host, and bargain the kingdom back.`,
+ verse:`"Empty was Dyfed, empty Arberth, /\nempty the seven cantrefs of the south." — A song of Manawydan`,
+ grid:["1111111111111111","1S.L.........S.1","1..............1","1..2222...2222.1","1..2..2...2..2.1","1.L2..2.L.2..2.1","1..2..2...2..2.1","1..2..2...2..2.1","1..2..22222..2.1","1..2.........2.1","1..2.E..S..E.2.1","1..2.........2.1","1..2222...2222.1","1.....L.B......1","1.S....3......S1","1111111111111111"],
+ torches:[[1,1],[14,1],[7,5],[1,9],[14,9],[7,12]], start:{x:1.5,y:1.5,a:0},
+ lorestones:[
+   {x:3,y:1,id:"iii_pryderi_loss",title:"The Vanished Kingdom",body:"At Gorsedd Arberth came thunder and a fall of mist. When it lifted, no house stood, no herd lowed, no man or woman remained in Dyfed save Manawydan, Pryderi, Rhiannon and Cigfa. The four lived alone in the empty country for two years, hunting wild honey and mead, before they sought work in the towns of Lloegr."},
+   {x:2,y:5,id:"iii_manawydan_craft",title:"The Craftsman King",body:"Manawydan, son of Llŷr, was a king without a kingdom and learned three trades by his own wit: saddler, shieldwright, and shoemaker. His work was so fine that every other craftsman of Hereford rose against him. In each town he was driven out — and so returned to ruined Dyfed."},
+   {x:8,y:5,id:"iii_rhiannon_pryderi",title:"Rhiannon and Pryderi",body:"Pryderi laid hand on a golden bowl chained to a slab and could neither speak nor let go. Rhiannon, his mother — once accused of devouring her own child, once made to bear guests on her back like a horse — came to free him, and was taken by the same enchantment. Both vanished into Llwyd's caer."},
+   {x:6,y:13,id:"iii_llwyd",title:"Llwyd ap Cil Coed",body:"The enchanter Llwyd cast the mist upon Dyfed in vengeance for the humiliation of his friend Gwawl ap Clud — whom Pwyll had once tricked at Rhiannon's bridal feast, beating him inside a magical bag. Llwyd's mouse-host devoured Manawydan's wheat, and only by catching the queen-mouse did Manawydan win Dyfed back."}
+ ],
+ soulPool:[
+   {name:"Cigfa, daughter of Gwynn Glôyw",line:"He took Pryderi at the bowl. Don't touch it."},
+   {name:"A craftsman of Hereford",line:"His saddles were too fine, too fine."},
+   {name:"A mouse-shape, given woman's voice",line:"Spare the small one, lord. She is heavy with child."},
+   {name:"Pryderi fab Pwyll",line:"My hand will not come off the bowl."},
+   {name:"Rhiannon, who once bore guests",line:"I have worn a horse's collar before. I can wear it again."},
+   {name:"A shieldwright of Lloegr",line:"They drove us out for the work of our hands."},
+   {name:"Gwawl ap Clud, in the bag",line:"Beaten, beaten, beaten."},
+   {name:"A swineherd of Arberth",line:"The mist took the hogs first."}
+ ]},
+{name:"IV",title:"Caer Dathyl — The Fourth Branch",branch:"Math fab Mathonwy",tint:[36,28,46],
+ bossName:"Gwyn ap Nudd · King of the Wild Hunt",
+ bossDeath:"Gwyn ap Nudd is unhorsed. The borrowed crown lifts from your brow.",
+ story:`At the year's hinge, the way home leads through Caer Dathyl, hall of Math fab Mathonwy, who cannot live save with his feet in a virgin's lap except when he is at war. Here Gwydion wove women from flowers and men from staves, and Lleu Llaw Gyffes was given his name. Past the bone-altar waits Gwyn ap Nudd, antlered king of the Wild Hunt — last warden of Annwn's gate.`,
+ verse:`"Three things won at Caer Sidi: /\nthe cauldron's breath, the bard's tongue, and the way home." — Preiddeu Annwfn`,
+ grid:["1111111111111111","1S.L........L.S1","1..1.222222.1..1","1.E1.2....2.1.E1","1..1.2.SS.2.1..1","1..1.2....2.1..1","1.....2..2.....1","1.L...2..2...L.1","1.....2.B2.....1","1.....2..2.....1","1..1.2....2.1..1","1..1.2.SS.2.1..1","1.E1.2....2.1.E1","1..1.222222.1..1","1S....3.......S1","1111111111111111"],
+ torches:[[3,3],[12,3],[7,6],[8,9],[3,12],[12,12]], start:{x:8.5,y:1.5,a:Math.PI/2},
+ lorestones:[
+   {x:2,y:1,id:"iv_math_lap",title:"Math's Lap-Condition",body:"Math fab Mathonwy, king of Gwynedd, could not live save with his feet in the lap of a virgin maiden — except when the land was at war. When his foot-holder Goewin was violated by Gwydion's brother during a contrived war with Dyfed, Math made her his queen and turned the brothers into deer, swine and wolves for three years' penance."},
+   {x:13,y:1,id:"iv_blodeuwedd",title:"Blodeuwedd",body:"For Lleu Llaw Gyffes, on whom his mother Arianrhod laid a curse that no woman of any race should ever be his wife, Math and Gwydion wove a wife from the flowers of oak, of broom, and of meadowsweet. They named her Blodeuwedd — Flower-Face. She betrayed Lleu to her lover Gronw, and was turned for it into the owl."},
+   {x:2,y:7,id:"iv_lleu",title:"Lleu Llaw Gyffes",body:"Lleu, the Bright One of the Sure Hand, could only be killed by a spear forged for a year on Sundays during Mass, while he stood with one foot on a goat and one on the rim of a tub by a riverbank. Blodeuwedd contrived this exact death — but Gwydion found him, an eagle on a tree, rotting flesh dropping into the swine's trough, and sang him whole."},
+   {x:13,y:7,id:"iv_gwyn_wild_hunt",title:"Gwyn ap Nudd & the Wild Hunt",body:"Gwyn ap Nudd, son of Nudd of the Silver Hand, was given by God dominion over the demons of Annwn lest they destroy the present race of men. With his hound Dormarth he rides at the year's hinge, gathering the souls of the slain to the Otherworld. To pass him is to pass the last warden of Annwn."}
+   ],
+ soulPool:[
+   {name:"Goewin, footholder of Math",line:"He made me queen, after."},
+   {name:"Blodeuwedd, before her owl-shape",line:"I am of oak, of broom, of meadowsweet."},
+   {name:"Lleu Llaw Gyffes, before the spear",line:"By the riverbank, by the riverbank."},
+   {name:"Gronw the Strong",line:"Let me hold a stone between us this time."},
+   {name:"Aranrhod's maids",line:"The third curse he broke as well."},
+   {name:"Dylan Eil Ton",line:"I went into the sea and never returned."},
+   {name:"A swineherd of Gwynedd",line:"The pigs were a gift from Annwn. We should never have taken them."},
+   {name:"Gilfaethwy fab Dôn",line:"Three years a deer, a sow, a wolf. We bore young."}
+ ]}
+];
+
+const KIND={hound:{hp:3,spd:1.3,dmg:9,reach:0.95,scale:0.62,tex:'hound'},
+            white:{hp:2,spd:2.5,dmg:7,reach:0.9,scale:0.58,tex:'white'},
+            boss:{hp:18,spd:1.15,dmg:16,reach:1.25,scale:1.28,tex:'boss'}};
+let state="title",curLevel=0,map=[],MAP_W=0,MAP_H=0,LM=null,TORCHES=[];
+let souls=[],enemies=[],parts=[],exit=null,lorestones=[],totalSoulsFreed=0,muzzle=0,lastShot=0,bobPhase=0;
+let nearestStone=null;
+const spriteList=[];
+const player={x:2.5,y:2.5,a:0,hp:100,vig:100,horn:0};
+const HORN_COST=45, HORN_CD=2.6, HORN_R=4.3;
+let MOUSE_SENS=0.0024, shake=0, muted=false;
+function addShake(n){if(n>shake)shake=Math.min(16,n);}
+
+function mkEnemy(x,y,kind){const k=KIND[kind];return {x:x+0.5,y:y+0.5,kind,hp:k.hp,maxhp:k.hp,alive:true,hurt:0,cool:0,d:99,phase:Math.random()*6,enraged:false,summonT:5,chargeCD:3,charge:0,stun:0};}
+function buildLightmap(){
+  LM=new Float32Array(MAP_W*MAP_H);
+  for(let cy=0;cy<MAP_H;cy++)for(let cx=0;cx<MAP_W;cx++){
+    if(map[cy][cx]>0)continue;
+    let s=0; const px=cx+0.5,py=cy+0.5;
+    for(const t of TORCHES){const _ddx=px-t.x,_ddy=py-t.y;const d=Math.sqrt(_ddx*_ddx+_ddy*_ddy); if(d<7&&los(px,py,t.x,t.y))s+=0.95/(1+0.55*d*d);}
+    LM[cy*MAP_W+cx]=Math.min(1.05,s);
+  }
+}
+function lmAt(x,y){const ix=x|0,iy=y|0;if(ix<0||iy<0||ix>=MAP_W||iy>=MAP_H)return 0;return LM[iy*MAP_W+ix];}
+function loadLevel(i){
+  curLevel=i;const L=LEVELS[i];map=[];souls=[];enemies=[];exit=null;lorestones=[];nearestStone=null;
+  for(let k=0;k<parts.length;k++)parts[k].life=0; // mark all pooled particles dead
+  // shuffle a copy of the soul pool so each playthrough varies which named souls appear
+  const pool=(L.soulPool||[]).slice();
+  for(let k=pool.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;const tmp=pool[k];pool[k]=pool[j];pool[j]=tmp;}
+  let poolIdx=0;
+  const stoneDefs=(L.lorestones||[]); let stoneIdx=0;
+  L.grid.forEach((row,y)=>{const r=[];for(let x=0;x<row.length;x++){const c=row[x];
+    if(c==='S'){const named=pool[poolIdx%pool.length]||{name:"A wandering shade",line:"…"};poolIdx++;
+      souls.push({x:x+0.5,y:y+0.5,freed:false,bob:Math.random()*6,name:named.name,line:named.line});r.push(0);}
+    else if(c==='E'){enemies.push(mkEnemy(x,y,'hound'));r.push(0);}
+    else if(c==='W'){enemies.push(mkEnemy(x,y,'white'));r.push(0);}
+    else if(c==='B'){enemies.push(mkEnemy(x,y,'boss'));r.push(0);}
+    else if(c==='3'){exit={x:x+0.5,y:y+0.5};r.push(0);}
+    else if(c==='L'){
+      // bind grid L positions to lorestone defs in declaration order
+      const s=stoneDefs[stoneIdx%Math.max(1,stoneDefs.length)]; stoneIdx++;
+      if(s)lorestones.push({x:x+0.5,y:y+0.5,id:s.id,title:s.title,body:s.body,read:!!(CODEX[s.id]&&CODEX[s.id].unlocked),ph:Math.random()*99});
+      r.push(0);
+    }
+    else r.push(c==='.'?0:(parseInt(c)||0));}
+    map.push(r);});
+  MAP_W=map[0].length;MAP_H=map.length;
+  TORCHES=(L.torches||[]).map(t=>({x:t[0]+0.5,y:t[1]+0.5,ph:Math.random()*99}));
+  buildLightmap();
+  player.x=L.start.x;player.y=L.start.y;player.a=L.start.a;player.horn=0;
+  document.getElementById('lvl').querySelector('.val').textContent=L.name;
+  // rename the boss bar for the current Branch
+  const bossNm=bossbar.querySelector('.nm');if(bossNm)bossNm.textContent=L.bossName||'Boss';
+  mini.width=MAP_W*7;mini.height=MAP_H*7;updHUD();
+}
+function tileAt(x,y){const ix=x|0,iy=y|0;if(ix<0||iy<0||ix>=MAP_W||iy>=MAP_H)return 1;return map[iy][ix];}
+function levelClear(){return souls.every(s=>s.freed)&&!enemies.some(e=>e.kind==='boss'&&e.alive);}
+
+/* ---------- input ---------- */
+const keys={};
+addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.code==='Tab')e.preventDefault();
+  if(!e.repeat){
+    if(state==='lore'){if(e.code==='KeyE'||e.code==='Escape'||e.code==='Enter'||e.code==='Space')closeLore();keys[e.code]=true;return;}
+    if(e.code==='KeyF')soundHorn();
+    else if(e.code==='KeyE')readStone();
+    else if(e.code==='Tab'){if(state==='play')openCodex();else if(state==='codex')closeCodex();}
+    else if(e.code==='Escape'||e.code==='KeyP'){if(state==='play')pauseGame();else if(state==='paused'||state==='codex')resumeGame();}
+    else if(e.code==='KeyM')toggleMute();
+  }
+  keys[e.code]=true;
+});
+addEventListener('keyup',e=>{keys[e.code]=false;});
+cv.addEventListener('click',()=>{if(state==='play'&&!document.pointerLockElement)cv.requestPointerLock();});
+addEventListener('mousemove',e=>{if(document.pointerLockElement===cv&&state==='play')player.a+=e.movementX*MOUSE_SENS;});
+addEventListener('mousedown',e=>{if(state!=='play'||document.pointerLockElement!==cv)return;if(e.button===2)soundHorn();else shoot();});
+addEventListener('contextmenu',e=>{if(document.pointerLockElement===cv)e.preventDefault();});
+document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&state==='play')pauseGame();});
+
+/* ---------- audio ---------- */
+let AC=null,master=null;
+const NOISE_POOL={short:null,med:null,long:null};
+function audioInit(){if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain();master.gain.value=0.5;master.connect(AC.destination);
+  const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=55;
+  const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=170;
+  const g=AC.createGain();g.gain.value=0.05;
+  const lfo=AC.createOscillator();lfo.frequency.value=0.09;const lg=AC.createGain();lg.gain.value=0.025;
+  lfo.connect(lg).connect(g.gain);o.connect(f).connect(g).connect(master);o.start();lfo.start();
+  // preallocate noise buffers used by sfxStrike/sfxHit so combat doesn't churn AudioBuffers
+  NOISE_POOL.short=mkNoise(0.10);
+  NOISE_POOL.med=mkNoise(0.16);
+  NOISE_POOL.long=mkNoise(0.50);
+}catch(e){}}
+function ensureAudio(){if(AC&&AC.state==='suspended')AC.resume();}
+function mkNoise(d){const n=(AC.sampleRate*d)|0,b=AC.createBuffer(1,n,AC.sampleRate),c=b.getChannelData(0);for(let i=0;i<n;i++)c[i]=Math.random()*2-1;return b;}
+function sfxStrike(){if(!AC)return;const s=AC.createBufferSource();s.buffer=NOISE_POOL.med;const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=1700;const g=AC.createGain();const t=AC.currentTime;g.gain.setValueAtTime(0.22,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.16);s.connect(f).connect(g).connect(master);s.start();}
+function sfxChime(){if(!AC)return;const t=AC.currentTime;[880,1320].forEach((fr,i)=>{const o=AC.createOscillator();o.type='sine';o.frequency.value=fr;const g=AC.createGain();const st=t+i*0.06;g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(0.18,st+0.01);g.gain.exponentialRampToValueAtTime(0.001,st+0.6);o.connect(g).connect(master);o.start(st);o.stop(st+0.65);});}
+function sfxHit(){if(!AC)return;const s=AC.createBufferSource();s.buffer=NOISE_POOL.short;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=600;const g=AC.createGain();const t=AC.currentTime;g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);s.connect(f).connect(g).connect(master);s.start();}
+function sfxHurt(){if(!AC)return;const o=AC.createOscillator();o.type='square';const t=AC.currentTime;o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(60,t+0.2);const g=AC.createGain();g.gain.setValueAtTime(0.22,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.24);o.connect(g).connect(master);o.start();o.stop(t+0.26);}
+function sfxHorn(){if(!AC)return;const t=AC.currentTime;const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=155;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=480;const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.16,t+0.15);g.gain.setValueAtTime(0.16,t+0.7);g.gain.exponentialRampToValueAtTime(0.001,t+1.5);o.connect(f).connect(g).connect(master);o.start(t);o.stop(t+1.6);}
+function sfxRoar(){if(!AC)return;const t=AC.currentTime;const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(48,t+0.8);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=320;const g=AC.createGain();g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+1.0);o.connect(f).connect(g).connect(master);o.start(t);o.stop(t+1.1);}
+function sfxDeath(){if(!AC)return;const t=AC.currentTime;const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(40,t+1.2);const g=AC.createGain();g.gain.setValueAtTime(0.24,t);g.gain.exponentialRampToValueAtTime(0.001,t+1.3);o.connect(g).connect(master);o.start(t);o.stop(t+1.35);}
+
+/* ---------- particles (ring-buffer pool, no GC) ---------- */
+const PART_CAP=320; let partIdx=0;
+for(let i=0;i<PART_CAP;i++)parts.push({x:0,y:0,z:0,vx:0,vy:0,vz:0,life:0,max:1,r:0,g:0,b:0});
+function spawn(x,y,z,n,col,spd,up,life){
+  for(let i=0;i<n;i++){const a=Math.random()*6.283,s=Math.random()*spd;
+    const p=parts[partIdx];partIdx=(partIdx+1)%PART_CAP;
+    p.x=x;p.y=y;p.z=z;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s;p.vz=up*(0.4+Math.random());
+    const l=life*(0.6+Math.random()*0.6);p.life=l;p.max=l;
+    p.r=col[0];p.g=col[1];p.b=col[2];
+  }
+}
+function spawnSoul(x,y){spawn(x,y,0.5,16,[230,200,90],0.7,1.4,0.8);}
+function spawnHit(x,y,white){spawn(x,y,0.5,9,white?[210,205,190]:[150,20,20],1.0,0.7,0.45);}
+function spawnSummon(x,y){spawn(x,y,0.5,22,[210,210,200],1.4,1.1,0.6);}
+function updateParts(dt){for(let i=0;i<parts.length;i++){const p=parts[i];if(p.life<=0)continue;p.life-=dt;
+  if(p.life<=0)continue;
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vz-=2.2*dt;p.vx*=0.96;p.vy*=0.96;}}
+
+/* ---------- combat ---------- */
+function shoot(){const now=performance.now();if(now-lastShot<280)return;lastShot=now;muzzle=6;sfxStrike();
+  let best=null,bestD=99;
+  for(const e of enemies){if(!e.alive)continue;const dx=e.x-player.x,dy=e.y-player.y,dist=Math.sqrt(dx*dx+dy*dy);
+    let ang=Math.atan2(dy,dx)-player.a;while(ang<-Math.PI)ang+=2*Math.PI;while(ang>Math.PI)ang-=2*Math.PI;
+    const cone=(e.kind==='boss')?0.18:0.12;
+    if(Math.abs(ang)<cone&&dist<bestD&&los(player.x,player.y,e.x,e.y)){best=e;bestD=dist;}}
+  if(best){best.hp--;best.hurt=8;sfxHit();spawnHit(best.x,best.y,best.kind==='white');
+    crossEl.classList.add('hit');setTimeout(()=>crossEl.classList.remove('hit'),110);
+    if(best.hp<=0){best.alive=false;spawnHit(best.x,best.y,best.kind==='white');
+      if(best.kind==='boss'){const L=LEVELS[curLevel];flash(L.bossDeath||"The boss falls.");sfxRoar();spawnSummon(best.x,best.y);
+        codexUnlock("boss_"+BRANCHES[curLevel].toLowerCase());}
+      else flash("A hound of Annwn falls.");}}}
+function los(x0,y0,x1,y1){
+  // grid-stepped DDA: walks tile boundaries in order, ~2x faster than fixed-step interp
+  const dx=x1-x0, dy=y1-y0;
+  const ddx=dx===0?1e30:Math.abs(1/dx), ddy=dy===0?1e30:Math.abs(1/dy);
+  let mx=x0|0, my=y0|0;
+  const stepX=dx<0?-1:1, stepY=dy<0?-1:1;
+  let sX=dx<0?(x0-mx)*ddx:(mx+1-x0)*ddx;
+  let sY=dy<0?(y0-my)*ddy:(my+1-y0)*ddy;
+  const mxEnd=x1|0, myEnd=y1|0;
+  for(let g=0;g<64;g++){
+    if(mx===mxEnd&&my===myEnd)return true;
+    if(sX<sY){sX+=ddx;mx+=stepX;}else{sY+=ddy;my+=stepY;}
+    if(mx<0||my<0||mx>=MAP_W||my>=MAP_H)return false;
+    if(map[my][mx]>0)return false;
+  }
+  return true;
+}
+function spawnHoundNear(b){for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]){
+  const nx=b.x+dx,ny=b.y+dy;if(tileAt(nx,ny)===0){const e=mkEnemy(Math.floor(nx),Math.floor(ny),'white');e.x=nx;e.y=ny;enemies.push(e);spawnSummon(nx,ny);return;}}}
+function soundHorn(){
+  if(state!=='play'||player.horn>0||player.vig<HORN_COST)return;
+  player.horn=HORN_CD; player.vig=Math.max(0,player.vig-HORN_COST);
+  sfxHorn(); addShake(8);
+  hornFlash.style.opacity=0.85; setTimeout(()=>{hornFlash.style.opacity=0;},40);
+  spawn(player.x,player.y,0.5,30,[235,205,95],2.4,0.7,0.7);
+  let hit=0;
+  for(const e of enemies){if(!e.alive)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<HORN_R&&los(player.x,player.y,e.x,e.y)){
+      const boss=e.kind==='boss';
+      e.stun=Math.max(e.stun,boss?(e.enraged?0:0.7):1.5);
+      const kb=boss?0.35:1.0, ux=dx/(d||1), uy=dy/(d||1);
+      const nx=e.x+ux*kb, ny=e.y+uy*kb;
+      if(tileAt(nx,e.y)===0)e.x=nx; if(tileAt(e.x,ny)===0)e.y=ny;
+      spawnHit(e.x,e.y,true); hit++;
+    }}
+  flash(hit?"You sound Arawn's horn — the pack recoils!":"Arawn's horn echoes through the empty mist.");
+  updHUD();
+}
+function toggleMute(){muted=!muted;if(master)master.gain.value=muted?0:0.5;}
+
+function readStone(){
+  if(state!=='play'||!nearestStone)return;
+  const s=nearestStone;
+  s.read=true;
+  codexUnlock(s.id);
+  sfxChime();
+  nearestStone=null;
+  const pr=document.getElementById('prompt');if(pr)pr.classList.remove('show');
+  showLore(s.title,s.body);
+}
+function showLore(title,body){
+  state='lore';document.exitPointerLock();bossbar.classList.remove('show');
+  scrollC.innerHTML=`<div class="scroll" style="max-width:640px">
+    <h1 style="font-size:clamp(22px,4vw,38px);color:var(--gold)">${title}<span class="sub">A stone in the mist</span></h1>
+    <p class="firstcap">${body}</p>
+    <button class="btn" id="loreOn">Walk On</button>
+    <div class="ctrls" style="margin-top:14px"><b>E / Esc / Enter</b> — continue</div>
+  </div>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('loreOn').onclick=closeLore;
+}
+function closeLore(){if(state!=='lore')return;overlay.classList.add('hidden');state='play';cv.requestPointerLock();}
+function showCodexChip(){const c=document.getElementById('codexchip');if(c){c.classList.add('show');clearTimeout(showCodexChip._t);showCodexChip._t=setTimeout(()=>c.classList.remove('show'),3200);}}
+
+/* ---------- update ---------- */
+function update(dt){
+  if(state!=='play')return;
+  const sprint=(keys['ShiftLeft']||keys['ShiftRight'])&&player.vig>0;
+  const spd=(sprint?4.2:2.6)*dt, rot=2.4*dt;
+  let mvx=0,mvy=0;
+  if(keys['KeyW']||keys['ArrowUp']){mvx+=Math.cos(player.a);mvy+=Math.sin(player.a);}
+  if(keys['KeyS']||keys['ArrowDown']){mvx-=Math.cos(player.a);mvy-=Math.sin(player.a);}
+  if(keys['KeyA']){mvx+=Math.cos(player.a-Math.PI/2);mvy+=Math.sin(player.a-Math.PI/2);}
+  if(keys['KeyD']){mvx+=Math.cos(player.a+Math.PI/2);mvy+=Math.sin(player.a+Math.PI/2);}
+  if(keys['ArrowLeft'])player.a-=rot; if(keys['ArrowRight'])player.a+=rot;
+  const ml=Math.sqrt(mvx*mvx+mvy*mvy);let moving=false;
+  if(ml>0){mvx/=ml;mvy/=ml;moving=true;bobPhase+=dt*(sprint?14:9);
+    const nx=player.x+mvx*spd,ny=player.y+mvy*spd;
+    if(tileAt(nx,player.y)===0)player.x=nx; if(tileAt(player.x,ny)===0)player.y=ny;}
+  if(sprint&&moving)player.vig=Math.max(0,player.vig-38*dt); else player.vig=Math.min(100,player.vig+22*dt);
+  if(player.horn>0)player.horn=Math.max(0,player.horn-dt);
+  if(keys['Space'])shoot();
+
+  for(const s of souls){if(s.freed)continue;s.bob+=dt*3;
+    const _dxs=s.x-player.x,_dys=s.y-player.y;
+    if(_dxs*_dxs+_dys*_dys<0.25){s.freed=true;totalSoulsFreed++;
+      player.hp=Math.min(100,player.hp+8);
+      const named=s.name?("You free "+s.name+" — “"+s.line+"”"):"A soul slips free of the mist.";
+      flash(named);sfxChime();spawnSoul(s.x,s.y);updHUD();
+      if(s.name)codexUnlock(soulCodexId(BRANCHES[curLevel],s.name));
+      if(levelClear())flash("The portal opens. Seek it.");}}
+  // nearest unread lorestone (prompt the player to read)
+  nearestStone=null;
+  let bestD=0.49;
+  for(const ls of lorestones){if(ls.read)continue;const dx=ls.x-player.x,dy=ls.y-player.y;const d=dx*dx+dy*dy;if(d<bestD){bestD=d;nearestStone=ls;}}
+  const pr=document.getElementById('prompt');if(pr){if(nearestStone)pr.classList.add('show');else pr.classList.remove('show');}
+
+  for(const e of enemies){if(!e.alive)continue;e.hurt=Math.max(0,e.hurt-1);e.cool=Math.max(0,e.cool-dt);
+    const dx=player.x-e.x,dy=player.y-e.y,d=Math.sqrt(dx*dx+dy*dy);e.d=d;
+    if(e.stun>0){e.stun-=dt; if(Math.random()<0.25)spawn(e.x,e.y,0.5,1,[210,205,190],0.4,0.5,0.3); continue;}
+    if(e.kind==='boss'){
+      if(!e.enraged&&e.hp<=e.maxhp/2){e.enraged=true;const bnm=(LEVELS[curLevel].bossName||'The boss').split('·')[0].trim();flash(bnm+" bellows — the pack answers!");sfxRoar();addShake(9);}
+      e.summonT-=dt;
+      if(e.enraged&&e.summonT<=0&&enemies.filter(x=>x.alive).length<9){e.summonT=6;spawnHoundNear(e);sfxRoar();}
+      e.chargeCD-=dt;
+      if(e.charge>0)e.charge-=dt;
+      else if(e.chargeCD<=0&&d>2&&d<8&&los(e.x,e.y,player.x,player.y)){e.charge=0.55;e.chargeCD=4.5;sfxRoar();addShake(6);}
+    }
+    let mspd=KIND[e.kind].spd; if(e.kind==='boss'){if(e.enraged)mspd*=1.3;if(e.charge>0)mspd*=2.3;}
+    const sight=(e.kind==='boss')?13:8;
+    if(d<sight&&d>KIND[e.kind].reach&&los(e.x,e.y,player.x,player.y)){
+      const es=mspd*dt,ex=e.x+(dx/d)*es,ey=e.y+(dy/d)*es;
+      if(tileAt(ex,e.y)===0)e.x=ex; if(tileAt(e.x,ey)===0)e.y=ey; e.phase+=dt*mspd*3.2;}
+    if(d<KIND[e.kind].reach&&e.cool<=0){e.cool=(e.kind==='boss')?1.1:0.8;damage(KIND[e.kind].dmg);}}
+
+  updateParts(dt);
+  if(exit&&levelClear()){const _dxe=exit.x-player.x,_dye=exit.y-player.y;if(_dxe*_dxe+_dye*_dye<0.36)nextLevel();}
+  if(muzzle>0)muzzle--;
+}
+function damage(n){player.hp-=n;updHUD();sfxHurt();addShake(Math.min(9,2+n*0.4));dmgFlash.style.opacity=0.9;setTimeout(()=>dmgFlash.style.opacity=0,110);
+  if(player.hp<=0){player.hp=0;updHUD();die();}}
+function nextLevel(){if(curLevel+1>=LEVELS.length){winGame();return;}document.exitPointerLock();showStory(curLevel+1);}
+
+/* ---------- renderer ---------- */
+const FOV=Math.PI/3, PLANE=Math.tan(FOV/2);
+const AMB=0.16, PR=10, PI_=0.85; // ambient, player torch range & intensity
+let curDir={x:1,y:0},curPlane={x:0,y:0},curHOR=0,curFlick=1,curZ=null;
+function render(now){
+  const L=LEVELS[curLevel];
+  const t=now*0.001, flick=clamp(0.93+0.05*Math.sin(t*5)+0.02*Math.sin(t*13.3),0.85,1);
+  const dirX=Math.cos(player.a),dirY=Math.sin(player.a);
+  const planeX=-dirY*PLANE, planeY=dirX*PLANE;
+  const bobPix=Math.sin(bobPhase)*RES_H*0.006;
+  const HOR=(RES_H*0.5+bobPix)|0; const tint=L.tint;
+  curDir={x:dirX,y:dirY};curPlane={x:planeX,y:planeY};curHOR=HOR;curFlick=flick;
+  // ceiling (mist) — lit faintly by ambient + nearby torches via player proximity glow
+  for(let y=0;y<HOR;y++){const f=y/HOR;
+    const r=(4+(tint[0]-4)*f)*flick,g=(7+(tint[1]-7)*f)*flick,b=(8+(tint[2]-8)*f)*flick;
+    const c=PK(r,g,b);const o=y*RES_W;for(let x=0;x<RES_W;x++)buf[o+x]=c;}
+  curZ=zbuf;
+  // Wall pass — DDA raycast per column; floor depth (perp) cached for the scanline floor pass below
+  for(let x=0;x<RES_W;x++){
+    const camX=2*x/RES_W-1;
+    const rdx=dirX+planeX*camX, rdy=dirY+planeY*camX;
+    let mapX=player.x|0,mapY=player.y|0;
+    const ddx=Math.abs(1/rdx),ddy=Math.abs(1/rdy);
+    let stepX,stepY,sideX,sideY;
+    if(rdx<0){stepX=-1;sideX=(player.x-mapX)*ddx;}else{stepX=1;sideX=(mapX+1-player.x)*ddx;}
+    if(rdy<0){stepY=-1;sideY=(player.y-mapY)*ddy;}else{stepY=1;sideY=(mapY+1-player.y)*ddy;}
+    let side=0,hit=0,guard=0;
+    while(guard++<64){if(sideX<sideY){sideX+=ddx;mapX+=stepX;side=0;}else{sideY+=ddy;mapY+=stepY;side=1;}
+      const tv=(mapX<0||mapY<0||mapX>=MAP_W||mapY>=MAP_H)?1:map[mapY][mapX];if(tv>0){hit=tv;break;}}
+    const perp=side===0?(sideX-ddx):(sideY-ddy);
+    zbuf[x]=perp;
+    const lineH=(RES_H/perp)|0;
+    const dStart=HOR-(lineH>>1), dEnd=dStart+lineH;
+    let wallX=side===0?player.y+perp*rdy:player.x+perp*rdx; wallX-=Math.floor(wallX);
+    let texX=(wallX*TT)|0; if((side===0&&rdx>0)||(side===1&&rdy<0))texX=TT-texX-1;
+    const tex=WALL_TEX[hit]||WALL_TEX[1];
+    // lighting at wall: sample lightmap at the hit cell + player-torch proximity
+    const hx=player.x+perp*rdx, hy=player.y+perp*rdy;
+    // perp is distance along the ray-vector in tile units; rdx/rdy aren't unit but |(rdx,rdy)| varies with camX
+    // we want world distance for the torch falloff, so use perp*sqrt(rdx^2+rdy^2)
+    const rlen=Math.sqrt(rdx*rdx+rdy*rdy);
+    const nx=rdx/rlen, ny=rdy/rlen;
+    const stat=lmAt(hx-nx*0.08,hy-ny*0.08);
+    const dpl=perp*rlen;
+    const pl=PI_*Math.max(0,1-dpl/PR);
+    let lin=AMB+stat+pl; const lit=stat+pl; lin=lin>1.25?1.25:lin;
+    const w=lit/(lin+0.001);
+    const sideShade=side===1?0.78:1;
+    const mR=lin*(1+0.10*w)*sideShade*flick, mG=lin*(1-0.03*w)*sideShade*flick, mB=lin*(1-0.18*w)*sideShade*flick;
+    const cStart=Math.max(0,dStart),cEnd=Math.min(RES_H,dEnd);
+    const stepTex=TT/lineH; let texPos=(cStart-dStart)*stepTex;
+    for(let y=cStart;y<cEnd;y++){const ty=(texPos)&(TT-1);texPos+=stepTex;const c=tex[ty*TT+texX];
+      buf[y*RES_W+x]=PK((c&255)*mR,((c>>8)&255)*mG,((c>>16)&255)*mB);}
+  }
+  // Floor pass — scanline (row-major), march fx,fy across the row with constant step
+  // Left edge ray = dir - plane; right edge ray = dir + plane.
+  // At row y, rowDist = 0.5*RES_H / (y-HOR); fx = player + rowDist * leftEdgeRay; step per pixel = rowDist * (rightEdgeRay - leftEdgeRay) / RES_W = rowDist * 2*plane / RES_W
+  const lrdx=dirX-planeX, lrdy=dirY-planeY;
+  const stepPxX=2*planeX/RES_W, stepPxY=2*planeY/RES_W;
+  for(let y=HOR+1;y<RES_H;y++){
+    const rowDist=(0.5*RES_H)/(y-HOR);
+    let fx=player.x+rowDist*lrdx, fy=player.y+rowDist*lrdy;
+    const dxStep=rowDist*stepPxX, dyStep=rowDist*stepPxY;
+    // player-torch falloff is constant across the row (same distance)
+    const plRow=PI_*Math.max(0,1-rowDist/PR);
+    const o=y*RES_W;
+    for(let x=0;x<RES_W;x++){
+      // skip pixels covered by the wall in this column
+      const perp=zbuf[x]; const lineH=(RES_H/perp)|0;
+      const dEnd=HOR-(lineH>>1)+lineH;
+      if(y<dEnd){fx+=dxStep;fy+=dyStep;continue;}
+      const stp=lmAt(fx,fy);
+      let lin=AMB+stp+plRow; const lit=stp+plRow; if(lin>1.25)lin=1.25;
+      const ww=lit/(lin+0.001);
+      const fR=lin*(1+0.10*ww)*flick, fG=lin*(1-0.03*ww)*flick, fB=lin*(1-0.18*ww)*flick;
+      const c=FLOOR_TEX[((((fy-Math.floor(fy))*TT)|0)&(TT-1))*TT+((((fx-Math.floor(fx))*TT)|0)&(TT-1))];
+      buf[o+x]=PK((c&255)*fR,((c>>8)&255)*fG,((c>>16)&255)*fB);
+      fx+=dxStep;fy+=dyStep;
+    }
+  }
+
+  // sprites + torch flames + lorestones
+  spriteList.length=0;
+  for(const s of souls)if(!s.freed)spriteList.push({x:s.x,y:s.y,kind:'soul',ref:s});
+  for(const e of enemies)if(e.alive)spriteList.push({x:e.x,y:e.y,kind:e.kind,ref:e});
+  for(const tr of TORCHES)spriteList.push({x:tr.x,y:tr.y,kind:'flame',ref:tr});
+  for(const ls of lorestones)spriteList.push({x:ls.x,y:ls.y,kind:ls.read?'stoneRead':'stone',ref:ls});
+  if(exit&&levelClear())spriteList.push({x:exit.x,y:exit.y,kind:'portal',ref:null});
+  const list=spriteList;
+  for(const s of list){const _dx=s.x-player.x,_dy=s.y-player.y;s.d=Math.sqrt(_dx*_dx+_dy*_dy);}
+  list.sort((a,b)=>b.d-a.d);
+  for(const s of list)blit(s,zbuf,dirX,dirY,planeX,planeY,HOR,flick,now);
+
+  renderParts(dirX,dirY,planeX,planeY,HOR,zbuf);
+  ctx.putImageData(img,0,0);
+  drawWeapon();
+}
+
+function blit(sp,zbuf,dirX,dirY,planeX,planeY,HOR,flick,now){
+  const sx=sp.x-player.x, sy=sp.y-player.y;
+  const invDet=1/(planeX*dirY-dirX*planeY);
+  const tX=invDet*(dirY*sx-dirX*sy);
+  const tY=invDet*(-planeY*sx+planeX*sy);
+  if(tY<=0.15)return;
+  const selfLit=(sp.kind==='soul'||sp.kind==='portal'||sp.kind==='flame'||sp.kind==='stone');
+  const texKey=(sp.kind==='soul'||sp.kind==='portal'||sp.kind==='flame'||sp.kind==='stone'||sp.kind==='stoneRead')?sp.kind:KIND[sp.kind].tex;
+  const tex=SPR[texKey];
+  let scale=sp.kind==='soul'?0.5:sp.kind==='portal'?0.95:sp.kind==='flame'?0.42:(sp.kind==='stone'||sp.kind==='stoneRead')?0.58:KIND[sp.kind].scale;
+  // animation
+  let lift=0, sqz=1;
+  if(sp.kind==='soul'&&sp.ref)lift=Math.sin(sp.ref.bob)*0.12;
+  if(sp.kind==='flame'&&sp.ref){scale*=0.9+0.12*Math.sin(now*0.02+sp.ref.ph)+0.06*Math.random();}
+  if(sp.ref&&(sp.kind==='hound'||sp.kind==='white'||sp.kind==='boss')){
+    const ph=sp.ref.phase||0; lift=Math.abs(Math.sin(ph))*0.05; sqz=1+0.05*Math.sin(ph*2);}
+  const screenX=((RES_W/2)*(1+tX/tY))|0;
+  const h=Math.min(RES_H*4,Math.abs(RES_H/tY)*scale)|0;
+  const w=(h*(tex.w/tex.h)*sqz)|0;
+  if(h<=0||w<=0)return;
+  const liftPx=lift*(RES_H/tY);
+  let footDrop;
+  if(sp.kind==='flame')footDrop=-h*0.55;      // mount flames up on the walls
+  else if(sp.kind==='stoneRead')footDrop=h*0.20; // sit cairn on floor
+  else if(selfLit)footDrop=0;
+  else footDrop=h*0.12;
+  const dStartY=(HOR-h*0.5+footDrop-liftPx)|0;
+  // lighting for non-self-lit sprites
+  let mR=1,mG=1,mB=1;
+  if(!selfLit){const stat=lmAt(sp.x,sp.y); const pl=PI_*Math.max(0,1-sp.d/PR);
+    let lin=AMB+stat+pl; const lit=stat+pl; lin=lin>1.25?1.25:lin; const ww=lit/(lin+0.001);
+    mR=lin*(1+0.10*ww)*flick; mG=lin*(1-0.03*ww)*flick; mB=lin*(1-0.18*ww)*flick;}
+  const hurt=sp.ref&&sp.ref.hurt>0;
+  const enr=sp.kind==='boss'&&sp.ref&&sp.ref.enraged;
+  const dsx=(screenX-w/2)|0,dex=(screenX+w/2)|0;
+  if(dex<=0||dsx>=RES_W)return; // off-screen cull
+  if(dStartY+h<=0||dStartY>=RES_H)return;
+  const y0=Math.max(0,dStartY),y1=Math.min(RES_H,dStartY+h);
+  const stxStep=tex.w/w, styStep=tex.h/h;
+  const stripeStart=Math.max(0,dsx), stripeEnd=Math.min(RES_W,dex);
+  let texXf=(stripeStart-dsx)*stxStep;
+  for(let stripe=stripeStart;stripe<stripeEnd;stripe++,texXf+=stxStep){
+    if(tY>=zbuf[stripe])continue;
+    const texX=texXf|0;
+    let texYf=(y0-dStartY)*styStep;
+    for(let y=y0;y<y1;y++,texYf+=styStep){const texY=texYf|0;
+      const c=tex.data[texY*tex.w+texX]; if((c>>>24)<40)continue;
+      let r=(c&255)*mR,g=((c>>8)&255)*mG,b=((c>>16)&255)*mB;
+      if(enr){r=Math.min(255,r*1.15+30);g*=0.9;b*=0.85;}
+      if(hurt){r=r+(255-r)*0.6;g*=0.4;b*=0.4;}
+      buf[y*RES_W+stripe]=PK(r,g,b);
+    }
+  }
+}
+
+function renderParts(dirX,dirY,planeX,planeY,HOR,zbuf){
+  const invDet=1/(planeX*dirY-dirX*planeY);
+  for(const p of parts){
+    if(p.life<=0)continue;
+    const sx=p.x-player.x, sy=p.y-player.y;
+    const tX=invDet*(dirY*sx-dirX*sy), tY=invDet*(-planeY*sx+planeX*sy);
+    if(tY<=0.2)continue;
+    const col=((RES_W/2)*(1+tX/tY))|0; if(col<0||col>=RES_W)continue;
+    if(tY>=zbuf[col])continue;
+    const floorY=HOR+(0.5*RES_H)/tY;
+    const scrY=(floorY-(p.z*RES_H)/tY)|0;
+    const sz=Math.max(1,(RES_H/tY)*0.05)|0;
+    const k=clamp(p.life/p.max,0,1);
+    const r=p.r*(0.4+0.6*k),g=p.g*(0.4+0.6*k),b=p.b*(0.4+0.6*k);
+    const c=PK(r,g,b);
+    for(let yy=scrY;yy<scrY+sz;yy++){if(yy<0||yy>=RES_H)continue;const o=yy*RES_W;
+      for(let xx=col;xx<col+sz;xx++){if(xx<0||xx>=RES_W)continue;buf[o+xx]=c;}}
+  }
+}
+
+function drawWeapon(){
+  const bob=Math.sin(bobPhase)*RES_H*0.02; const cx=RES_W*0.5, baseY=RES_H+4+bob;
+  ctx.save();
+  ctx.strokeStyle='#2a1d10';ctx.lineWidth=RES_H*0.03;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(cx+RES_W*0.10,baseY);ctx.lineTo(cx-RES_W*0.02,RES_H*0.45+bob);ctx.stroke();
+  const tx=cx-RES_W*0.02, ty=RES_H*0.45+bob;
+  ctx.fillStyle=muzzle>0?'#ffe8a0':'#b8b2a0';
+  ctx.beginPath();ctx.moveTo(tx,ty-RES_H*0.11);ctx.lineTo(tx-RES_W*0.028,ty+RES_H*0.02);ctx.lineTo(tx+RES_W*0.028,ty+RES_H*0.02);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#c9a98a';
+  if(ctx.roundRect){ctx.beginPath();ctx.roundRect(cx+RES_W*0.045,baseY-RES_H*0.20,RES_W*0.11,RES_H*0.18,6);ctx.fill();}
+  else ctx.fillRect(cx+RES_W*0.045,baseY-RES_H*0.20,RES_W*0.11,RES_H*0.18);
+  if(muzzle>0){const g=ctx.createRadialGradient(tx,ty-RES_H*0.07,0,tx,ty-RES_H*0.07,RES_W*0.09);
+    g.addColorStop(0,'rgba(255,230,160,.9)');g.addColorStop(1,'rgba(255,200,80,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(tx,ty-RES_H*0.07,RES_W*0.09,0,7);ctx.fill();}
+  ctx.restore();
+}
+
+/* ---------- minimap ---------- */
+function drawMini(){
+  if(!map.length)return;const C=7;mctx.clearRect(0,0,mini.width,mini.height);
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){if(map[y][x]>0){mctx.fillStyle=map[y][x]===2?'rgba(150,70,80,.7)':'rgba(120,130,124,.55)';mctx.fillRect(x*C,y*C,C,C);}}
+  for(const tr of TORCHES){mctx.fillStyle='rgba(255,150,40,.8)';mctx.fillRect(tr.x*C-1.5,tr.y*C-1.5,3,3);}
+  for(const s of souls)if(!s.freed){mctx.fillStyle='#e8c24a';mctx.fillRect(s.x*C-2,s.y*C-2,4,4);}
+  for(const e of enemies)if(e.alive){mctx.fillStyle=e.kind==='boss'?'#ff5a2a':e.kind==='white'?'#e0ddd0':'#c92020';mctx.fillRect(e.x*C-2,e.y*C-2,4,4);}
+  if(exit&&levelClear()){mctx.fillStyle='#5ab8ff';mctx.fillRect(exit.x*C-2,exit.y*C-2,5,5);}
+  mctx.save();mctx.translate(player.x*C,player.y*C);mctx.rotate(player.a);
+  mctx.fillStyle='#fff';mctx.beginPath();mctx.moveTo(5,0);mctx.lineTo(-3,-3);mctx.lineTo(-3,3);mctx.closePath();mctx.fill();mctx.restore();
+}
+
+/* ---------- HUD / screens ---------- */
+function updHUD(){
+  document.querySelector('#hp .val').textContent=Math.max(0,player.hp|0);
+  document.querySelector('#hp .bar i').style.width=Math.max(0,player.hp)+'%';
+  document.querySelector('#vig .val').textContent=player.vig|0;
+  document.querySelector('#vig .bar i').style.width=player.vig+'%';
+  const freed=souls.filter(s=>s.freed).length;
+  document.querySelector('#soul .val').textContent=souls.length?(freed+'/'+souls.length):'0';
+  const vigEl=document.getElementById('vig');
+  if(player.horn<=0&&player.vig>=HORN_COST)vigEl.classList.add('ready'); else vigEl.classList.remove('ready');
+  if(player.hp<30&&player.hp>0)wrap.classList.add('lowhp'); else wrap.classList.remove('lowhp');
+}
+let msgTimer=null;
+// duration: if not given, scale by length (~55ms per char, min 1.6s, max 9s) so quotes and long lines stay readable
+function flash(t,dur){if(dur==null)dur=Math.min(9000,Math.max(1600,t.length*55));msgEl.textContent=t;msgEl.classList.add('show');clearTimeout(msgTimer);msgTimer=setTimeout(()=>msgEl.classList.remove('show'),dur);}
+function updBossBar(){const boss=enemies.find(e=>e.kind==='boss'&&e.alive);
+  if(boss&&boss.d<13){bossbar.classList.add('show');bossbar.classList.toggle('rage',!!boss.enraged);bossFill.style.width=(boss.hp/boss.maxhp*100)+'%';}
+  else bossbar.classList.remove('show');}
+
+function showTitle(){state='title';bossbar.classList.remove('show');wrap.classList.remove('lowhp');
+  const unlocked=Object.keys(CODEX).filter(k=>CODEX[k].unlocked).length;
+  const total=Object.keys(CODEX).length;
+  const cdxHint=unlocked>0?`<div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.22em;color:var(--gold);margin-top:14px;text-transform:uppercase">Codex: ${unlocked} of ${total} fragments &nbsp;·&nbsp; <button class="tg" id="cdxBtn" style="margin-left:8px">Open</button></div>`:'';
+  scrollC.innerHTML=`<h1>ANNWN<span class="sub">The Four Branches</span></h1>
+    <p class="firstcap">Wearing the face of the Otherworld's king, you must walk the realm of the dead for a year and a day. Free the shades bound in its mist. Bear witness to the Four Branches of the Mabinogi. Find your way home.</p>
+    <button class="btn" id="startBtn">Enter the Mist</button>
+    ${cdxHint}
+    <div class="ctrls"><b>W A S D</b> / Arrows — move &nbsp;·&nbsp; <b>Shift</b> — run &nbsp;·&nbsp; <b>Mouse</b> — look<br><b>Click / Space</b> — strike &nbsp;·&nbsp; <b>F / Right-click</b> — Arawn's Horn<br><b>E</b> — read lorestone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause<br>Free every soul to open the deeper portal</div>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
+  const cb=document.getElementById('cdxBtn');if(cb)cb.onclick=()=>{state='play';openCodex();};
+}
+function showStory(i){state='story';bossbar.classList.remove('show');const L=LEVELS[i];
+  const verse=L.verse?`<p style="font-family:'Cinzel',serif;font-style:normal;font-size:13px;letter-spacing:.18em;color:var(--gold);max-width:520px;margin:22px auto 12px;white-space:pre-line;line-height:1.7;text-transform:uppercase">${L.verse}</p>`:'';
+  const branchLine=L.branch?`<p style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.32em;color:var(--mist);margin-top:22px;text-transform:uppercase">${L.branch}</p>`:'';
+  scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">Annwn ${L.name}<span class="sub">${L.title}</span></h1>
+    ${branchLine}
+    ${verse}
+    <p class="firstcap">${L.story}</p><button class="btn" id="goBtn">Descend</button>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('goBtn').onclick=()=>{ensureAudio();loadLevel(i);overlay.classList.add('hidden');state='play';sfxHorn();cv.requestPointerLock();};
+}
+function die(){state='dead';document.exitPointerLock();sfxDeath();addShake(12);bossbar.classList.remove('show');wrap.classList.remove('lowhp');
+  const verse=VERSES.death[(Math.random()*VERSES.death.length)|0];
+  scrollC.innerHTML=`<h1 style="color:var(--blood)">SLAIN<span class="sub">The hounds drag you down</span></h1>
+    <p style="font-family:'Cinzel',serif;font-style:normal;font-size:13px;letter-spacing:.20em;color:var(--gold);max-width:520px;margin:18px auto;text-transform:uppercase">"${verse}"</p>
+    <p class="firstcap">The crimson-eared pack closes over you, and the mist takes its due. But Annwn does not let its borrowed king rest. Rise, and walk again.</p>
+    <button class="btn" id="retryBtn">Walk Again</button>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('retryBtn').onclick=()=>{ensureAudio();player.hp=100;player.vig=100;loadLevel(curLevel);overlay.classList.add('hidden');state='play';cv.requestPointerLock();};
+}
+function openCodex(){if(state!=='play')return;state='codex';document.exitPointerLock();renderCodex();overlay.classList.remove('hidden');}
+function closeCodex(){if(state!=='codex')return;overlay.classList.add('hidden');state='play';cv.requestPointerLock();}
+let codexActiveId=null;
+function renderCodex(){
+  const counts={I:0,II:0,III:0,IV:0},totals={I:0,II:0,III:0,IV:0};
+  for(const k in CODEX){const e=CODEX[k];totals[e.branch]++;if(e.unlocked)counts[e.branch]++;}
+  const totalAll=totals.I+totals.II+totals.III+totals.IV;
+  const unlockedAll=counts.I+counts.II+counts.III+counts.IV;
+  const cols=BRANCHES.map(b=>{
+    const items=Object.keys(CODEX).filter(k=>CODEX[k].branch===b);
+    const lis=items.map(k=>{const e=CODEX[k];const cls=e.unlocked?(k===codexActiveId?'entry active':'entry'):'entry locked';
+      const lbl=e.unlocked?e.title:'??? — fragment lost in the mist';
+      return `<div class="${cls}" data-id="${k}">${lbl}</div>`;}).join('');
+    return `<div class="col"><h3>${BRANCH_TITLES[b]}<br><small style="color:var(--mist);font-size:9px;letter-spacing:.2em">${counts[b]}/${totals[b]}</small></h3>${lis}</div>`;
+  }).join('');
+  const active=codexActiveId&&CODEX[codexActiveId]&&CODEX[codexActiveId].unlocked?CODEX[codexActiveId]:null;
+  const reader=active?`<div class="reader"><h2>${active.title}</h2><p>${active.body}</p></div>`:`<div class="reader empty"><p>Select an entry from the branches above. Read lorestones in the mist to unbind more passages.</p></div>`;
+  scrollC.innerHTML=`<div class="codex"><h1 style="font-size:clamp(24px,4vw,40px)">CODEX<span class="sub">Of the Four Branches</span></h1>
+    <div class="progress">${unlockedAll} of ${totalAll} fragments recovered</div>
+    <div class="branches">${cols}</div>${reader}
+    <button class="btn" id="closeCdx" style="margin-top:22px">Return to Annwn</button>
+    <div class="ctrls" style="margin-top:14px"><b>Tab / Esc</b> — close</div></div>`;
+  scrollC.querySelectorAll('.entry').forEach(el=>{el.onclick=()=>{const id=el.getAttribute('data-id');if(CODEX[id]&&CODEX[id].unlocked){codexActiveId=id;renderCodex();}};});
+  const cb=document.getElementById('closeCdx');if(cb)cb.onclick=closeCodex;
+}
+function winGame(){state='win';document.exitPointerLock();sfxChime();bossbar.classList.remove('show');wrap.classList.remove('lowhp');
+  scrollC.innerHTML=`<h1 style="color:var(--gold)">HOMEWARD<span class="sub">The year is done</span></h1>
+    <p class="firstcap">The Cauldron of Rebirth lies shattered, its cold fire quenched, and its keeper unhorsed. ${totalSoulsFreed} souls walk free of the mist. The borrowed crown lifts from your brow, and the grey gate of Annwn opens onto the green hills of Dyfed. You go home, Pwyll — Pwyll Pen Annwn, Head of the Otherworld, the friendship of Arawn won at last.</p>
+    <button class="btn" id="againBtn">Begin Anew</button>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('againBtn').onclick=()=>{totalSoulsFreed=0;updHUD();showTitle();};
+}
+function pauseGame(){if(state!=='play')return;state='paused';document.exitPointerLock();showPause();}
+function resumeGame(){if(state!=='paused')return;overlay.classList.add('hidden');state='play';cv.requestPointerLock();}
+function showPause(){
+  scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">PAUSED<span class="sub">Annwn holds its breath</span></h1>
+    <button class="btn" id="resumeBtn">Resume</button>
+    <div class="setrow"><span>Look Sensitivity</span><input type="range" id="sens" min="8" max="60" value="${Math.round(MOUSE_SENS*10000)}"></div>
+    <div class="setrow"><span>Sound</span><button class="tg ${muted?'off':''}" id="muteBtn">${muted?'Muted':'On'}</button></div>
+    <div class="setrow"><span>Resolution</span><button class="tg ${RES_PINNED?'':'off'}" id="resPin">${RES_PINNED?'Pinned':'Adaptive'}</button><span style="opacity:.65">${(RES_SCALE*100|0)}% · ${RES_W}×${RES_H} · ${frameEMA.toFixed(1)}ms</span></div>
+    <div class="ctrls" style="margin-top:26px"><b>F</b> / Right-click — sound Arawn's Horn &nbsp;·&nbsp; <b>E</b> — read stone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc / P</b> — pause &nbsp;·&nbsp; <b>M</b> — mute</div>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('resumeBtn').onclick=resumeGame;
+  document.getElementById('sens').oninput=e=>{MOUSE_SENS=(+e.target.value)/10000;};
+  document.getElementById('muteBtn').onclick=e=>{toggleMute();e.target.textContent=muted?'Muted':'On';e.target.classList.toggle('off',muted);};
+  document.getElementById('resPin').onclick=e=>{RES_PINNED=!RES_PINNED;e.target.textContent=RES_PINNED?'Pinned':'Adaptive';e.target.classList.toggle('off',!RES_PINNED);};
+}
+
+/* ---------- loop + adaptive resolution ---------- */
+let last=performance.now();
+let frameEMA=16, adaptHi=0, adaptLo=0;
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  update(dt);
+  if(map.length&&(state==='play'||state==='story'||state==='dead'||state==='win'||state==='paused'||state==='lore'||state==='codex')){
+    render(now);drawMini();
+    if(state==='play'){updHUD();updBossBar();} else bossbar.classList.remove('show');
+  }
+  if(shake>0.15){const a=Math.random()*6.283;cv.style.transform=`translate(${Math.cos(a)*shake}px,${Math.sin(a)*shake}px)`;shake*=0.86;}
+  else if(shake!==0){shake=0;cv.style.transform='';}
+  // adaptive resolution — only while playing, and not when user has pinned
+  if(state==='play'&&!RES_PINNED){
+    const frame=performance.now()-now;
+    frameEMA=frameEMA*0.93+frame*0.07;
+    if(frameEMA>22){adaptHi+=dt;adaptLo=0;
+      if(adaptHi>1&&RES_SCALE>0.55){RES_SCALE=Math.max(0.55,RES_SCALE-0.15);applyResolution();adaptHi=0;}
+    } else if(frameEMA<13){adaptLo+=dt;adaptHi=0;
+      if(adaptLo>2&&RES_SCALE<1){RES_SCALE=Math.min(1,RES_SCALE+0.15);applyResolution();adaptLo=0;}
+    } else {adaptHi=0;adaptLo=0;}
+  }
+  requestAnimationFrame(loop);
+}
+codexSeed();codexLoad();
+showTitle();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
