@@ -1,0 +1,478 @@
+{
+  "schema": 1,
+  "id": "the-mist-of-dyfed",
+  "name": "III",
+  "title": "The Mist of Dyfed — The Third Branch",
+  "branch": "Manawydan fab Llŷr",
+  "tint": [
+    22,
+    30,
+    40
+  ],
+  "boss": {
+    "name": "Llwyd ap Cil Coed · The Enchanter",
+    "death": "Llwyd unweaves the mist — Dyfed returns to the green world."
+  },
+  "story": "Returned from Ireland, you sit at Gorsedd Arberth with Pryderi, Cigfa and Rhiannon. A peal of thunder, and when the mist lifts every house, every herd, every soul in Dyfed is gone. Llwyd ap Cil Coed has cast this enchantment in vengeance for an old slight to Gwawl ap Clud. Free what remains, find the mouse-host, and bargain the kingdom back.",
+  "verse": "\"Empty was Dyfed, empty Arberth, /\nempty the seven cantrefs of the south.\" — A song of Manawydan",
+  "source": "authored",
+  "seed": null,
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  ],
+  "entities": [
+    {
+      "type": "soul",
+      "x": 1.5,
+      "y": 1.5
+    },
+    {
+      "type": "lorestone",
+      "x": 3.5,
+      "y": 1.5,
+      "ref": "iii_pryderi_loss"
+    },
+    {
+      "type": "soul",
+      "x": 13.5,
+      "y": 1.5
+    },
+    {
+      "type": "lorestone",
+      "x": 2.5,
+      "y": 5.5,
+      "ref": "iii_manawydan_craft"
+    },
+    {
+      "type": "lorestone",
+      "x": 8.5,
+      "y": 5.5,
+      "ref": "iii_rhiannon_pryderi"
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 5.5,
+      "y": 10.5
+    },
+    {
+      "type": "soul",
+      "x": 8.5,
+      "y": 10.5
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 11.5,
+      "y": 10.5
+    },
+    {
+      "type": "lorestone",
+      "x": 6.5,
+      "y": 13.5,
+      "ref": "iii_llwyd"
+    },
+    {
+      "type": "enemy",
+      "kind": "boss",
+      "x": 8.5,
+      "y": 13.5
+    },
+    {
+      "type": "soul",
+      "x": 2.5,
+      "y": 14.5
+    },
+    {
+      "type": "exit",
+      "x": 7.5,
+      "y": 14.5
+    },
+    {
+      "type": "soul",
+      "x": 14.5,
+      "y": 14.5
+    },
+    {
+      "type": "start",
+      "x": 1.5,
+      "y": 1.5,
+      "a": 0
+    },
+    {
+      "type": "torch",
+      "x": 1.5,
+      "y": 1.5
+    },
+    {
+      "type": "torch",
+      "x": 14.5,
+      "y": 1.5
+    },
+    {
+      "type": "torch",
+      "x": 7.5,
+      "y": 5.5
+    },
+    {
+      "type": "torch",
+      "x": 1.5,
+      "y": 9.5
+    },
+    {
+      "type": "torch",
+      "x": 14.5,
+      "y": 9.5
+    },
+    {
+      "type": "torch",
+      "x": 7.5,
+      "y": 12.5
+    }
+  ],
+  "lore": [
+    {
+      "id": "iii_pryderi_loss",
+      "title": "The Vanished Kingdom",
+      "body": "At Gorsedd Arberth came thunder and a fall of mist. When it lifted, no house stood, no herd lowed, no man or woman remained in Dyfed save Manawydan, Pryderi, Rhiannon and Cigfa. The four lived alone in the empty country for two years, hunting wild honey and mead, before they sought work in the towns of Lloegr."
+    },
+    {
+      "id": "iii_manawydan_craft",
+      "title": "The Craftsman King",
+      "body": "Manawydan, son of Llŷr, was a king without a kingdom and learned three trades by his own wit: saddler, shieldwright, and shoemaker. His work was so fine that every other craftsman of Hereford rose against him. In each town he was driven out — and so returned to ruined Dyfed."
+    },
+    {
+      "id": "iii_rhiannon_pryderi",
+      "title": "Rhiannon and Pryderi",
+      "body": "Pryderi laid hand on a golden bowl chained to a slab and could neither speak nor let go. Rhiannon, his mother — once accused of devouring her own child, once made to bear guests on her back like a horse — came to free him, and was taken by the same enchantment. Both vanished into Llwyd's caer."
+    },
+    {
+      "id": "iii_llwyd",
+      "title": "Llwyd ap Cil Coed",
+      "body": "The enchanter Llwyd cast the mist upon Dyfed in vengeance for the humiliation of his friend Gwawl ap Clud — whom Pwyll had once tricked at Rhiannon's bridal feast, beating him inside a magical bag. Llwyd's mouse-host devoured Manawydan's wheat, and only by catching the queen-mouse did Manawydan win Dyfed back."
+    }
+  ],
+  "soulPool": [
+    {
+      "name": "Cigfa, daughter of Gwynn Glôyw",
+      "line": "He took Pryderi at the bowl. Don't touch it."
+    },
+    {
+      "name": "A craftsman of Hereford",
+      "line": "His saddles were too fine, too fine."
+    },
+    {
+      "name": "A mouse-shape, given woman's voice",
+      "line": "Spare the small one, lord. She is heavy with child."
+    },
+    {
+      "name": "Pryderi fab Pwyll",
+      "line": "My hand will not come off the bowl."
+    },
+    {
+      "name": "Rhiannon, who once bore guests",
+      "line": "I have worn a horse's collar before. I can wear it again."
+    },
+    {
+      "name": "A shieldwright of Lloegr",
+      "line": "They drove us out for the work of our hands."
+    },
+    {
+      "name": "Gwawl ap Clud, in the bag",
+      "line": "Beaten, beaten, beaten."
+    },
+    {
+      "name": "A swineherd of Arberth",
+      "line": "The mist took the hogs first."
+    }
+  ]
+}

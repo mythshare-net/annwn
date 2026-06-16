@@ -1,0 +1,490 @@
+{
+  "schema": 1,
+  "id": "branwen-s-hall",
+  "name": "II",
+  "title": "Branwen's Hall — The Second Branch",
+  "branch": "Branwen ferch Llŷr",
+  "tint": [
+    44,
+    20,
+    28
+  ],
+  "boss": {
+    "name": "Efnysien · Breaker of the Cauldron",
+    "death": "Efnysien shatters the Pair Dadeni from within — the cauldron is broken."
+  },
+  "story": "The Pair Dadeni — the Cauldron of Rebirth — was carried to Ireland for Branwen's wedding, and into it the slain are cast to rise again mute and deathless. Now her brother Bran the Blessed lies wounded by a poisoned spear, and only Efnysien's last act will break the cauldron's curse. Press on. The Irish hall lies past the river Llinon.",
+  "verse": "\"Reborn from the cauldron, no tongue was left them /\nto name their own kin.\" — Llyfr Coch Hergest, II",
+  "source": "authored",
+  "seed": null,
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      2,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      2,
+      2,
+      2,
+      0,
+      2,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      2,
+      2,
+      2,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  ],
+  "entities": [
+    {
+      "type": "enemy",
+      "kind": "white",
+      "x": 7.5,
+      "y": 1.5
+    },
+    {
+      "type": "lorestone",
+      "x": 10.5,
+      "y": 1.5,
+      "ref": "ii_bran"
+    },
+    {
+      "type": "soul",
+      "x": 2.5,
+      "y": 2.5
+    },
+    {
+      "type": "soul",
+      "x": 11.5,
+      "y": 2.5
+    },
+    {
+      "type": "lorestone",
+      "x": 2.5,
+      "y": 4.5,
+      "ref": "ii_starling"
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 2.5,
+      "y": 5.5
+    },
+    {
+      "type": "lorestone",
+      "x": 10.5,
+      "y": 7.5,
+      "ref": "ii_pair_dadeni"
+    },
+    {
+      "type": "soul",
+      "x": 14.5,
+      "y": 7.5
+    },
+    {
+      "type": "enemy",
+      "kind": "boss",
+      "x": 7.5,
+      "y": 9.5
+    },
+    {
+      "type": "soul",
+      "x": 4.5,
+      "y": 10.5
+    },
+    {
+      "type": "lorestone",
+      "x": 4.5,
+      "y": 11.5,
+      "ref": "ii_efnysien"
+    },
+    {
+      "type": "enemy",
+      "kind": "white",
+      "x": 10.5,
+      "y": 11.5
+    },
+    {
+      "type": "soul",
+      "x": 7.5,
+      "y": 13.5
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 9.5,
+      "y": 13.5
+    },
+    {
+      "type": "exit",
+      "x": 14.5,
+      "y": 14.5
+    },
+    {
+      "type": "start",
+      "x": 2.5,
+      "y": 2.5,
+      "a": 0
+    },
+    {
+      "type": "torch",
+      "x": 1.5,
+      "y": 1.5
+    },
+    {
+      "type": "torch",
+      "x": 14.5,
+      "y": 1.5
+    },
+    {
+      "type": "torch",
+      "x": 1.5,
+      "y": 7.5
+    },
+    {
+      "type": "torch",
+      "x": 12.5,
+      "y": 7.5
+    },
+    {
+      "type": "torch",
+      "x": 1.5,
+      "y": 13.5
+    },
+    {
+      "type": "torch",
+      "x": 14.5,
+      "y": 13.5
+    }
+  ],
+  "lore": [
+    {
+      "id": "ii_bran",
+      "title": "Bran the Blessed",
+      "body": "Bendigeidfran, Bran the Blessed, was high king of the Island of the Mighty — so vast he could wade the Irish Sea with his fleet at his side. Wounded in the foot by a poisoned spear at Branwen's war, he ordered his head cut from his body and borne home. For seven years it sang to his companions at Harlech, and longer still at Gwales."
+    },
+    {
+      "id": "ii_starling",
+      "title": "Branwen's Starling",
+      "body": "Wed to Matholwch of Ireland and beaten daily in his kitchens, Branwen taught a starling words and sent it across the sea to her brother. So Bran came in war — and Branwen, when at last she returned to Wales, looked at the two slaughtered hosts and her heart broke in her breast on the banks of the Alaw."
+    },
+    {
+      "id": "ii_pair_dadeni",
+      "title": "The Pair Dadeni",
+      "body": "The Cauldron of Rebirth was given by Bran to Matholwch in apology. Cast a slain man into it that night and he rises on the morrow whole — but mute, and remembering nothing of who he was. So the Irish fought on past death, and the Welsh could not win, until Efnysien hid among the slain and burst the cauldron with his own heart."
+    },
+    {
+      "id": "ii_efnysien",
+      "title": "Efnysien",
+      "body": "Half-brother to Bran and Branwen, Efnysien's spite began the war: he maimed Matholwch's horses at the wedding feast, and threw Branwen's infant son Gwern into the hall-fire. Yet at the end it was his body alone that broke the cauldron and saved what remained of the Island of the Mighty."
+    }
+  ],
+  "soulPool": [
+    {
+      "name": "Gwern, the child cast to the fire",
+      "line": "Mother. Mother."
+    },
+    {
+      "name": "Heilyn fab Gwyn",
+      "line": "We carried his head to Harlech, and it sang."
+    },
+    {
+      "name": "Pryderi, who returned",
+      "line": "Seven of us came home. Only seven."
+    },
+    {
+      "name": "Manawydan fab Llŷr",
+      "line": "My brother's wound would not close."
+    },
+    {
+      "name": "Taliesin, before he was a bard",
+      "line": "At Gwales we forgot a long time."
+    },
+    {
+      "name": "A drummer of Matholwch",
+      "line": "I died in Ireland. I rose without tongue."
+    },
+    {
+      "name": "Branwen's starling",
+      "line": "Across the sea, across the sea."
+    },
+    {
+      "name": "Ynawg of the Seven",
+      "line": "Do not open the door to Cornwall."
+    }
+  ]
+}

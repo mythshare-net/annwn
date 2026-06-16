@@ -1,0 +1,483 @@
+{
+  "schema": 1,
+  "id": "glyn-cuch",
+  "name": "I",
+  "title": "Glyn Cuch — The First Branch",
+  "branch": "Pwyll, Prince of Dyfed",
+  "tint": [
+    26,
+    40,
+    38
+  ],
+  "boss": {
+    "name": "Hafgan · King at the Ford",
+    "death": "Hafgan falls in a single blow. Arawn's debt is paid."
+  },
+  "story": "At Glyn Cuch you set your hounds upon a stag another pack had brought down — and that pack was Arawn's, lord of Annwn. To make amends you wear his face for a year and a day, and at the year's hinge must strike his rival Hafgan one blow only at the ford. The grey hounds with crimson ears bay beyond the gate. Walk the Otherworld. Free the shades bound in its mists.",
+  "verse": "\"The mist took me at Glyn Cuch /\nere ever I heard the horn.\" — A bard of Dyfed",
+  "source": "authored",
+  "seed": null,
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  ],
+  "entities": [
+    {
+      "type": "lorestone",
+      "x": 7.5,
+      "y": 1.5,
+      "ref": "i_glyncuch"
+    },
+    {
+      "type": "soul",
+      "x": 3.5,
+      "y": 2.5
+    },
+    {
+      "type": "soul",
+      "x": 11.5,
+      "y": 3.5
+    },
+    {
+      "type": "lorestone",
+      "x": 2.5,
+      "y": 4.5,
+      "ref": "i_cwnannwn"
+    },
+    {
+      "type": "lorestone",
+      "x": 12.5,
+      "y": 6.5,
+      "ref": "i_arawn_bargain"
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 2.5,
+      "y": 7.5
+    },
+    {
+      "type": "soul",
+      "x": 14.5,
+      "y": 7.5
+    },
+    {
+      "type": "lorestone",
+      "x": 4.5,
+      "y": 9.5,
+      "ref": "i_hafgan"
+    },
+    {
+      "type": "soul",
+      "x": 4.5,
+      "y": 10.5
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 14.5,
+      "y": 10.5
+    },
+    {
+      "type": "enemy",
+      "kind": "boss",
+      "x": 10.5,
+      "y": 13.5
+    },
+    {
+      "type": "soul",
+      "x": 7.5,
+      "y": 14.5
+    },
+    {
+      "type": "exit",
+      "x": 14.5,
+      "y": 14.5
+    },
+    {
+      "type": "start",
+      "x": 2.5,
+      "y": 2.5,
+      "a": 0
+    },
+    {
+      "type": "torch",
+      "x": 2.5,
+      "y": 1.5
+    },
+    {
+      "type": "torch",
+      "x": 13.5,
+      "y": 1.5
+    },
+    {
+      "type": "torch",
+      "x": 2.5,
+      "y": 4.5
+    },
+    {
+      "type": "torch",
+      "x": 13.5,
+      "y": 4.5
+    },
+    {
+      "type": "torch",
+      "x": 7.5,
+      "y": 9.5
+    },
+    {
+      "type": "torch",
+      "x": 13.5,
+      "y": 7.5
+    },
+    {
+      "type": "torch",
+      "x": 5.5,
+      "y": 13.5
+    }
+  ],
+  "lore": [
+    {
+      "id": "i_glyncuch",
+      "title": "Glyn Cuch",
+      "body": "In the wood of Glyn Cuch, Pwyll loosed his hounds upon a stag — but found another pack already at the kill, white of body with red ears, the colour of Annwn. The huntsman of that pack was Arawn, king of the Otherworld, and Pwyll's rough courtesy began the bargain that bound him here."
+    },
+    {
+      "id": "i_cwnannwn",
+      "title": "Cŵn Annwn",
+      "body": "The Hounds of Annwn are white with crimson ears, and their baying is heard most clear in autumn skies above the marches of Wales. To hear them too near is a death-omen; to see them is to know that the Otherworld hunts close behind. They are the only hounds that the dead obey."
+    },
+    {
+      "id": "i_arawn_bargain",
+      "title": "Arawn's Bargain",
+      "body": "For a year and a day Pwyll wore Arawn's shape and held his throne, sharing nothing with the queen of Annwn but a courteous bed. So the friendship of the two kings was forged — and Pwyll earned the name Pen Annwn, Head of the Otherworld, by which he was known thereafter."
+    },
+    {
+      "id": "i_hafgan",
+      "title": "Hafgan, King at the Ford",
+      "body": "Arawn's rival ruled the other half of Annwn and could not be killed by any blow but the first. A second stroke would heal him whole. At year's end Pwyll met him at the ford and gave the one stroke that was needed. Annwn was made one realm under Arawn — and Pwyll went home."
+    }
+  ],
+  "soulPool": [
+    {
+      "name": "Eilonwy of the Mist",
+      "line": "My lord, the horn never came."
+    },
+    {
+      "name": "Idris the Forester",
+      "line": "I saw the white pack first — too late, too late."
+    },
+    {
+      "name": "Glyn, master of hounds",
+      "line": "They had red ears. I should have known."
+    },
+    {
+      "name": "Rhiwallon the bard",
+      "line": "Sing me home, prince. Sing me home."
+    },
+    {
+      "name": "Tegid of Dyfed",
+      "line": "The year is almost done, is it not?"
+    },
+    {
+      "name": "Mair, milkmaid of Narberth",
+      "line": "They say the king wore another's face."
+    },
+    {
+      "name": "Cadell the Old",
+      "line": "I never crossed the ford. I never crossed the ford."
+    },
+    {
+      "name": "Bleddyn the Huntsman",
+      "line": "Arawn's pack runs faster than ours."
+    }
+  ]
+}

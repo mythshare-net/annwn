@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ANNWN — The Hunt of Arawn</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div id="vignette"></div>
+  <div class="grain"></div>
+  <div id="dmgflash"></div>
+  <div id="hornflash"></div>
+  <div id="cross"></div>
+  <canvas id="mini" width="120" height="120"></canvas>
+  <div id="bossbar"><div class="nm">Boss</div><div class="track"><i class="fill" style="width:100%"></i></div></div>
+  <div id="msg"></div>
+  <div id="prompt"><b>E</b> Read the stone</div>
+  <div id="codexchip">📜 TAB · Codex</div>
+  <!-- touch controls — twin-stick: left = move, right = turn -->
+  <div class="touchUI">
+    <div id="stickArea"></div>
+    <div id="stickAreaR"></div>
+    <div id="stickBase" class="stickBase"><div class="stickKnob"></div></div>
+    <div id="stickBaseR" class="stickBase"><div class="stickKnob"></div></div>
+    <div id="stickLbl" class="stickLbl">MOVE</div>
+    <div id="stickLblR" class="stickLbl">TURN</div>
+    <div id="tHorn" class="tBtn gold">Horn</div>
+    <div id="tStrike" class="tBtn">Strike</div>
+    <div id="tRead" class="tBtn">Read</div>
+    <div id="tPause">⏸</div>
+    <div id="tCodex">📜</div>
+  </div>
+  <div id="hud">
+    <div class="stat" id="hp"><span class="val">100</span><span class="lbl">Life</span><span class="bar"><i style="width:100%"></i></span></div>
+    <div class="stat" id="vig"><span class="val">100</span><span class="lbl">Vigour</span><span class="bar"><i style="width:100%"></i></span></div>
+    <div class="stat" id="lvl"><span class="val">I</span><span class="lbl">Annwn</span></div>
+    <div class="stat" id="soul"><span class="val">0</span><span class="lbl">Souls</span></div>
+  </div>
+  <div id="overlay"><div class="scroll" id="scrollContent"></div></div>
+</div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>
