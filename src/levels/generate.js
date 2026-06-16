@@ -1,0 +1,168 @@
+// Procedural level generation via ROT.js — the open-source world-building engine.
+// Produces the SAME unified schema as authored/Tiled levels, so the loader and game
+// consume generated and hand-made branches identically.
+//
+// Styles: 'digger'/'uniform' (rooms + corridors, guaranteed connected) and 'cellular'
+// (organic "mist-cave"; we keep only the largest region so the result stays winnable).
+import { Map as ROTMap } from 'rot-js';
+import { setSeed, rand, shuffle } from '../engine/rng.js';
+import { TILE, floorRegions, validateLevel } from './schema.js';
+
+// Small public-domain-flavoured pools so generated branches are valid and atmospheric.
+const DEFAULT_THEME = {
+  name: '∞',
+  title: 'The Endless Mist — A Procedural Branch',
+  branch: 'Annwn Unbound',
+  tint: [24, 30, 38],
+  boss: { name: 'A Warden of the Deep Mist', death: 'The warden falls; the mist thins, and the way opens.' },
+  story: 'Beyond the Four Branches the mist has no map. Each crossing reshapes the Otherworld. Free the shades, unmake the warden, and find the portal before Annwn forgets your name.',
+  verse: '"No bard has sung this road, / for it is made new each time it is walked." — of the Endless Mist',
+  lore: [
+    { title: 'The Shifting Roads', body: 'The deep mist of Annwn keeps no fixed shape. Walls rise where none stood, and the ford moves with the year. Only the hounds remember the true path, and they do not share it.' },
+    { title: 'Cŵn Annwn', body: 'White of body and red of ear, the Hounds of Annwn course the mist. To hear their cry is an omen; to walk among them, a debt.' },
+    { title: 'The Cauldron\'s Echo', body: 'Some say the Pair Dadeni was never wholly broken, and that its breath still rises in the deep mist, raising the slain mute and nameless.' },
+    { title: 'The Warden', body: 'At the heart of every crossing waits a warden of the gate, set to keep the demons of Annwn from the world of the living.' },
+  ],
+  souls: [
+    { name: 'A nameless shade', line: 'Which way was the ford? I have forgotten.' },
+    { name: 'A bard of the mist', line: 'Sing me home — any home will do.' },
+    { name: 'A huntsman of Dyfed', line: 'The walls were not here yesterday.' },
+    { name: 'A drowned ferryman', line: 'I rose without a tongue, and yet I speak.' },
+    { name: 'A maid of the hollow', line: 'The hounds passed close. Too close.' },
+    { name: 'An old king', line: 'I wore another\'s face, and lost my own.' },
+  ],
+};
+
+function carve(style, w, h) {
+  let gen;
+  if (style === 'cellular') {
+    gen = new ROTMap.Cellular(w, h);
+    gen.randomize(0.5);
+    for (let i = 0; i < 4; i++) gen.create();
+  } else if (style === 'uniform') {
+    gen = new ROTMap.Uniform(w, h, { roomDugPercentage: 0.5 });
+  } else {
+    gen = new ROTMap.Digger(w, h);
+  }
+  const tiles = Array.from({ length: h }, () => new Array(w).fill(TILE.WALL));
+  gen.create((x, y, v) => { tiles[y][x] = v ? TILE.WALL : TILE.FLOOR; });
+  // force a solid border (schema invariant; also stops the raycaster marching off-map)
+  for (let x = 0; x < w; x++) { tiles[0][x] = TILE.WALL; tiles[h - 1][x] = TILE.WALL; }
+  for (let y = 0; y < h; y++) { tiles[y][0] = TILE.WALL; tiles[y][w - 1] = TILE.WALL; }
+  const rooms = (gen.getRooms && gen.getRooms()) || [];
+  return { tiles, rooms };
+}
+
+// Keep only the largest connected floor region; wall off the rest. Makes cellular winnable.
+function keepLargestRegion(tiles) {
+  const h = tiles.length, w = tiles[0].length;
+  const id = new Int32Array(w * h).fill(-1);
+  const sizes = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (tiles[y][x] !== TILE.FLOOR || id[y * w + x] !== -1) continue;
+    const r = sizes.length; let size = 0;
+    const stack = [y * w + x]; id[y * w + x] = r;
+    while (stack.length) {
+      const cur = stack.pop(); size++; const cx = cur % w, cy = (cur - cx) / w;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const ni = ny * w + nx;
+        if (tiles[ny][nx] !== TILE.FLOOR || id[ni] !== -1) continue;
+        id[ni] = r; stack.push(ni);
+      }
+    }
+    sizes.push(size);
+  }
+  if (sizes.length <= 1) return;
+  let best = 0; for (let i = 1; i < sizes.length; i++) if (sizes[i] > sizes[best]) best = i;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (id[y * w + x] !== -1 && id[y * w + x] !== best) tiles[y][x] = TILE.WALL;
+}
+
+function floorCells(tiles) {
+  const cells = [];
+  for (let y = 0; y < tiles.length; y++) for (let x = 0; x < tiles[0].length; x++) if (tiles[y][x] === TILE.FLOOR) cells.push([x, y]);
+  return cells;
+}
+const dist2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+
+/** Generate a procedural level. opts: { seed, width, height, style, theme, counts }. */
+export function generateLevel(opts = {}) {
+  const seed = setSeed(opts.seed ?? Math.floor(Math.random() * 1e9));
+  const width = opts.width || 25;
+  const height = opts.height || 25;
+  const style = opts.style || 'digger';
+  const theme = { ...DEFAULT_THEME, ...(opts.theme || {}) };
+
+  let tiles, cells;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    ({ tiles } = carve(style, width, height));
+    if (style === 'cellular') keepLargestRegion(tiles);
+    cells = floorCells(tiles);
+    if (cells.length >= 30 && floorRegions(tiles) === 1) break;
+  }
+
+  // Order floor cells by distance from a start anchor so we can place start near one end
+  // and exit/boss near the far end.
+  const anchor = cells[0];
+  const byFar = cells.slice().sort((a, b) => dist2(b, anchor) - dist2(a, anchor));
+  const startC = byFar[byFar.length - 1];
+  const exitC = byFar[0];
+  // boss: farthest cell from start that isn't the exit cell
+  let bossC = exitC;
+  for (const c of byFar) { if (c !== exitC) { bossC = c; break; } }
+
+  const used = new Set([startC.join(','), exitC.join(','), bossC.join(',')]);
+  const free = shuffle(cells.filter((c) => !used.has(c.join(','))));
+  const take = () => free.pop();
+
+  const counts = opts.counts || {};
+  const nSouls = Math.min(counts.souls ?? 6, Math.max(3, free.length));
+  const nHounds = Math.min(counts.hounds ?? 5, free.length);
+  const nWhite = Math.min(counts.white ?? 2, free.length);
+  const nLore = Math.min(counts.lore ?? 3, theme.lore.length, free.length);
+
+  const entities = [];
+  entities.push({ type: 'start', x: startC[0] + 0.5, y: startC[1] + 0.5, a: 0 });
+  entities.push({ type: 'exit', x: exitC[0] + 0.5, y: exitC[1] + 0.5 });
+  entities.push({ type: 'enemy', kind: 'boss', x: bossC[0] + 0.5, y: bossC[1] + 0.5 });
+
+  const lore = [];
+  for (let i = 0; i < nLore; i++) {
+    const src = theme.lore[i % theme.lore.length];
+    const id = `gen-${seed}-${i}`;
+    lore.push({ id, title: src.title, body: src.body });
+    const c = take(); if (!c) break;
+    entities.push({ type: 'lorestone', x: c[0] + 0.5, y: c[1] + 0.5, ref: id });
+  }
+  for (let i = 0; i < nSouls; i++) { const c = take(); if (!c) break; entities.push({ type: 'soul', x: c[0] + 0.5, y: c[1] + 0.5 }); }
+  for (let i = 0; i < nHounds; i++) { const c = take(); if (!c) break; entities.push({ type: 'enemy', kind: 'hound', x: c[0] + 0.5, y: c[1] + 0.5 }); }
+  for (let i = 0; i < nWhite; i++) { const c = take(); if (!c) break; entities.push({ type: 'enemy', kind: 'white', x: c[0] + 0.5, y: c[1] + 0.5 }); }
+  // a handful of torches for light
+  for (let i = 0; i < 6; i++) { const c = take(); if (!c) break; entities.push({ type: 'torch', x: c[0] + 0.5, y: c[1] + 0.5 }); }
+
+  const level = {
+    schema: 1,
+    id: `procedural-${seed}`,
+    name: theme.name,
+    title: theme.title,
+    branch: theme.branch,
+    tint: theme.tint,
+    boss: theme.boss,
+    story: theme.story,
+    verse: theme.verse,
+    source: 'procedural',
+    seed,
+    style,
+    width,
+    height,
+    tiles,
+    entities,
+    lore,
+    soulPool: theme.souls,
+  };
+
+  const v = validateLevel(level);
+  if (!v.ok) throw new Error(`generated level failed validation (seed ${seed}, style ${style}):\n  ${v.errors.join('\n  ')}`);
+  return level;
+}

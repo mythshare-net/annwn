@@ -1,0 +1,505 @@
+{
+  "schema": 1,
+  "id": "caer-dathyl",
+  "name": "IV",
+  "title": "Caer Dathyl — The Fourth Branch",
+  "branch": "Math fab Mathonwy",
+  "tint": [
+    36,
+    28,
+    46
+  ],
+  "boss": {
+    "name": "Gwyn ap Nudd · King of the Wild Hunt",
+    "death": "Gwyn ap Nudd is unhorsed. The borrowed crown lifts from your brow."
+  },
+  "story": "At the year's hinge, the way home leads through Caer Dathyl, hall of Math fab Mathonwy, who cannot live save with his feet in a virgin's lap except when he is at war. Here Gwydion wove women from flowers and men from staves, and Lleu Llaw Gyffes was given his name. Past the bone-altar waits Gwyn ap Nudd, antlered king of the Wild Hunt — last warden of Annwn's gate.",
+  "verse": "\"Three things won at Caer Sidi: /\nthe cauldron's breath, the bard's tongue, and the way home.\" — Preiddeu Annwfn",
+  "source": "authored",
+  "seed": null,
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      2,
+      2,
+      0,
+      2,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      2,
+      2,
+      0,
+      2,
+      2,
+      2,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  ],
+  "entities": [
+    {
+      "type": "soul",
+      "x": 1.5,
+      "y": 1.5
+    },
+    {
+      "type": "lorestone",
+      "x": 3.5,
+      "y": 1.5,
+      "ref": "iv_math_lap"
+    },
+    {
+      "type": "lorestone",
+      "x": 12.5,
+      "y": 1.5,
+      "ref": "iv_blodeuwedd"
+    },
+    {
+      "type": "soul",
+      "x": 14.5,
+      "y": 1.5
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 2.5,
+      "y": 3.5
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 14.5,
+      "y": 3.5
+    },
+    {
+      "type": "soul",
+      "x": 7.5,
+      "y": 4.5
+    },
+    {
+      "type": "soul",
+      "x": 8.5,
+      "y": 4.5
+    },
+    {
+      "type": "lorestone",
+      "x": 2.5,
+      "y": 7.5,
+      "ref": "iv_lleu"
+    },
+    {
+      "type": "lorestone",
+      "x": 13.5,
+      "y": 7.5,
+      "ref": "iv_gwyn_wild_hunt"
+    },
+    {
+      "type": "enemy",
+      "kind": "boss",
+      "x": 8.5,
+      "y": 8.5
+    },
+    {
+      "type": "soul",
+      "x": 7.5,
+      "y": 11.5
+    },
+    {
+      "type": "soul",
+      "x": 8.5,
+      "y": 11.5
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 2.5,
+      "y": 12.5
+    },
+    {
+      "type": "enemy",
+      "kind": "hound",
+      "x": 14.5,
+      "y": 12.5
+    },
+    {
+      "type": "soul",
+      "x": 1.5,
+      "y": 14.5
+    },
+    {
+      "type": "exit",
+      "x": 6.5,
+      "y": 14.5
+    },
+    {
+      "type": "soul",
+      "x": 14.5,
+      "y": 14.5
+    },
+    {
+      "type": "start",
+      "x": 8.5,
+      "y": 1.5,
+      "a": 1.5707963267948966
+    },
+    {
+      "type": "torch",
+      "x": 3.5,
+      "y": 3.5
+    },
+    {
+      "type": "torch",
+      "x": 12.5,
+      "y": 3.5
+    },
+    {
+      "type": "torch",
+      "x": 7.5,
+      "y": 6.5
+    },
+    {
+      "type": "torch",
+      "x": 8.5,
+      "y": 9.5
+    },
+    {
+      "type": "torch",
+      "x": 3.5,
+      "y": 12.5
+    },
+    {
+      "type": "torch",
+      "x": 12.5,
+      "y": 12.5
+    }
+  ],
+  "lore": [
+    {
+      "id": "iv_math_lap",
+      "title": "Math's Lap-Condition",
+      "body": "Math fab Mathonwy, king of Gwynedd, could not live save with his feet in the lap of a virgin maiden — except when the land was at war. When his foot-holder Goewin was violated by Gwydion's brother during a contrived war with Dyfed, Math made her his queen and turned the brothers into deer, swine and wolves for three years' penance."
+    },
+    {
+      "id": "iv_blodeuwedd",
+      "title": "Blodeuwedd",
+      "body": "For Lleu Llaw Gyffes, on whom his mother Arianrhod laid a curse that no woman of any race should ever be his wife, Math and Gwydion wove a wife from the flowers of oak, of broom, and of meadowsweet. They named her Blodeuwedd — Flower-Face. She betrayed Lleu to her lover Gronw, and was turned for it into the owl."
+    },
+    {
+      "id": "iv_lleu",
+      "title": "Lleu Llaw Gyffes",
+      "body": "Lleu, the Bright One of the Sure Hand, could only be killed by a spear forged for a year on Sundays during Mass, while he stood with one foot on a goat and one on the rim of a tub by a riverbank. Blodeuwedd contrived this exact death — but Gwydion found him, an eagle on a tree, rotting flesh dropping into the swine's trough, and sang him whole."
+    },
+    {
+      "id": "iv_gwyn_wild_hunt",
+      "title": "Gwyn ap Nudd & the Wild Hunt",
+      "body": "Gwyn ap Nudd, son of Nudd of the Silver Hand, was given by God dominion over the demons of Annwn lest they destroy the present race of men. With his hound Dormarth he rides at the year's hinge, gathering the souls of the slain to the Otherworld. To pass him is to pass the last warden of Annwn."
+    }
+  ],
+  "soulPool": [
+    {
+      "name": "Goewin, footholder of Math",
+      "line": "He made me queen, after."
+    },
+    {
+      "name": "Blodeuwedd, before her owl-shape",
+      "line": "I am of oak, of broom, of meadowsweet."
+    },
+    {
+      "name": "Lleu Llaw Gyffes, before the spear",
+      "line": "By the riverbank, by the riverbank."
+    },
+    {
+      "name": "Gronw the Strong",
+      "line": "Let me hold a stone between us this time."
+    },
+    {
+      "name": "Aranrhod's maids",
+      "line": "The third curse he broke as well."
+    },
+    {
+      "name": "Dylan Eil Ton",
+      "line": "I went into the sea and never returned."
+    },
+    {
+      "name": "A swineherd of Gwynedd",
+      "line": "The pigs were a gift from Annwn. We should never have taken them."
+    },
+    {
+      "name": "Gilfaethwy fab Dôn",
+      "line": "Three years a deer, a sow, a wolf. We bore young."
+    }
+  ]
+}
