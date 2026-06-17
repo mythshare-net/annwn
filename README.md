@@ -5,6 +5,8 @@ of the Otherworld, free the bound shades, read the lorestones, unmake each warde
 your way home. Pure HTML5 Canvas, no engine.
 
 ▶ **Play:** open `index.html` (it's a single self-contained file) or visit the GitHub Pages site.
+Choose **Enter the Mist** for the four-branch campaign, or **The Endless Mist** for infinite,
+seeded, procedurally-generated branches that deepen as you descend.
 
 ## Develop
 
