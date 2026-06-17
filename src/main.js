@@ -1,5 +1,6 @@
 "use strict";
 import { generateLevel } from "./levels/generate.js";
+import { pathStep } from "./ai/pathfinding.js";
 const cv=document.getElementById('game'), ctx=cv.getContext('2d');
 const mini=document.getElementById('mini'), mctx=mini.getContext('2d');
 const overlay=document.getElementById('overlay'), scrollC=document.getElementById('scrollContent');
@@ -291,7 +292,7 @@ const HORN_COST=45, HORN_CD=2.6, HORN_R=4.3;
 let MOUSE_SENS=0.0024, shake=0, muted=false;
 function addShake(n){if(n>shake)shake=Math.min(16,n);}
 
-function mkEnemy(x,y,kind){const k=KIND[kind];return {x:x+0.5,y:y+0.5,kind,hp:k.hp,maxhp:k.hp,alive:true,hurt:0,cool:0,d:99,phase:Math.random()*6,enraged:false,summonT:5,chargeCD:3,charge:0,stun:0};}
+function mkEnemy(x,y,kind){const k=KIND[kind];return {x:x+0.5,y:y+0.5,kind,hp:k.hp,maxhp:k.hp,alive:true,hurt:0,cool:0,d:99,phase:Math.random()*6,enraged:false,summonT:5,chargeCD:3,charge:0,stun:0,aggro:false,seen:0,tx:0,ty:0,step:null,pathCD:0};}
 function buildLightmap(){
   LM=new Float32Array(MAP_W*MAP_H);
   for(let cy=0;cy<MAP_H;cy++)for(let cx=0;cx<MAP_W;cx++){
@@ -380,6 +381,8 @@ function showEndlessStory(lvl){state='story';pendingSchema=lvl;bossbar.classList
   document.getElementById('goBtn').onclick=()=>{ensureAudio();loadSchemaLevel(pendingSchema);overlay.classList.add('hidden');state='play';sfxHorn();if(!IS_TOUCH)cv.requestPointerLock();};
 }
 function tileAt(x,y){const ix=x|0,iy=y|0;if(ix<0||iy<0||ix>=MAP_W||iy>=MAP_H)return 1;return map[iy][ix];}
+// next walkable tile from (fx,fy) toward (tx,ty), routing around walls (ROT.js A*)
+function aiNextStep(fx,fy,tx,ty){return pathStep((x,y)=>x>=0&&y>=0&&x<MAP_W&&y<MAP_H&&map[y][x]===0,fx,fy,tx,ty);}
 function levelClear(){return souls.every(s=>s.freed)&&!enemies.some(e=>e.kind==='boss'&&e.alive);}
 
 /* ---------- input ---------- */
@@ -692,8 +695,21 @@ function update(dt){
     }
     let mspd=KIND[e.kind].spd; if(e.kind==='boss'){if(e.enraged)mspd*=1.3;if(e.charge>0)mspd*=2.3;}
     const sight=(e.kind==='boss')?13:8;
-    if(d<sight&&d>KIND[e.kind].reach&&los(e.x,e.y,player.x,player.y)){
-      const es=mspd*dt,ex=e.x+(dx/d)*es,ey=e.y+(dy/d)*es;
+    const reach=KIND[e.kind].reach;
+    // direct line-of-sight refreshes the hunt and the last-known player tile
+    const seeP=d<sight&&los(e.x,e.y,player.x,player.y);
+    if(seeP){e.aggro=true;e.seen=3;e.tx=player.x|0;e.ty=player.y|0;e.step=null;}
+    else if(e.seen>0)e.seen=Math.max(0,e.seen-dt);
+    if(d>reach&&(seeP||(e.aggro&&e.seen>0))){
+      let mvx=0,mvy=0;
+      if(seeP){mvx=dx/d;mvy=dy/d;}                       // in sight: charge straight
+      else{                                              // out of sight: path around walls
+        e.pathCD-=dt;
+        if(e.pathCD<=0||!e.step){e.pathCD=0.25;e.step=aiNextStep(e.x|0,e.y|0,e.tx,e.ty);}
+        if(e.step){const sx=(e.step[0]+0.5)-e.x,sy=(e.step[1]+0.5)-e.y,sl=Math.hypot(sx,sy)||1;mvx=sx/sl;mvy=sy/sl;if(sl<0.15)e.step=null;}
+        if((e.x|0)===e.tx&&(e.y|0)===e.ty)e.seen=0;       // reached last-known spot — give up
+      }
+      const es=mspd*dt,ex=e.x+mvx*es,ey=e.y+mvy*es;
       if(tileAt(ex,e.y)===0)e.x=ex; if(tileAt(e.x,ey)===0)e.y=ey; e.phase+=dt*mspd*3.2;}
     if(d<KIND[e.kind].reach&&e.cool<=0){e.cool=(e.kind==='boss')?1.1:0.8;damage(KIND[e.kind].dmg);}}
 
