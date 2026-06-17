@@ -1,4 +1,5 @@
 "use strict";
+import { generateLevel } from "./levels/generate.js";
 const cv=document.getElementById('game'), ctx=cv.getContext('2d');
 const mini=document.getElementById('mini'), mctx=mini.getContext('2d');
 const overlay=document.getElementById('overlay'), scrollC=document.getElementById('scrollContent');
@@ -280,6 +281,8 @@ const KIND={hound:{hp:3,spd:1.3,dmg:9,reach:0.95,scale:0.62,tex:'hound'},
             white:{hp:2,spd:2.5,dmg:7,reach:0.9,scale:0.58,tex:'white'},
             boss:{hp:18,spd:1.15,dmg:16,reach:1.25,scale:1.28,tex:'boss'}};
 let state="title",curLevel=0,map=[],MAP_W=0,MAP_H=0,LM=null,TORCHES=[];
+// active level descriptor (legacy entry or normalized procedural schema) + endless-mode state
+let LV=null,endless=false,endlessDepth=0,curSchema=null,pendingSchema=null;
 let souls=[],enemies=[],parts=[],exit=null,lorestones=[],totalSoulsFreed=0,muzzle=0,lastShot=0,bobPhase=0;
 let nearestStone=null;
 const spriteList=[];
@@ -300,7 +303,7 @@ function buildLightmap(){
 }
 function lmAt(x,y){const ix=x|0,iy=y|0;if(ix<0||iy<0||ix>=MAP_W||iy>=MAP_H)return 0;return LM[iy*MAP_W+ix];}
 function loadLevel(i){
-  curLevel=i;const L=LEVELS[i];map=[];souls=[];enemies=[];exit=null;lorestones=[];nearestStone=null;
+  curLevel=i;endless=false;const L=LEVELS[i];LV=L;map=[];souls=[];enemies=[];exit=null;lorestones=[];nearestStone=null;
   for(let k=0;k<parts.length;k++)parts[k].life=0; // mark all pooled particles dead
   // shuffle a copy of the soul pool so each playthrough varies which named souls appear
   const pool=(L.soulPool||[]).slice();
@@ -330,6 +333,51 @@ function loadLevel(i){
   // rename the boss bar for the current Branch
   const bossNm=bossbar.querySelector('.nm');if(bossNm)bossNm.textContent=L.bossName||'Boss';
   mini.width=MAP_W*7;mini.height=MAP_H*7;updHUD();
+}
+// Load a unified-schema level (procedural or otherwise) into the runtime — the schema-aware
+// twin of loadLevel(). Consumes tiles + entities produced by src/levels/generate.js.
+function loadSchemaLevel(schema){
+  endless=true;LV=schema;curSchema=schema;
+  schema.bossName=schema.boss&&schema.boss.name;schema.bossDeath=schema.boss&&schema.boss.death;
+  map=schema.tiles.map(row=>row.slice());MAP_W=map[0].length;MAP_H=map.length;
+  souls=[];enemies=[];exit=null;lorestones=[];nearestStone=null;
+  for(let k=0;k<parts.length;k++)parts[k].life=0;
+  const pool=(schema.soulPool||[]).slice();
+  for(let k=pool.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;const t=pool[k];pool[k]=pool[j];pool[j]=t;}
+  let poolIdx=0;const loreById={};(schema.lore||[]).forEach(l=>{loreById[l.id]=l;});
+  let start={x:2.5,y:2.5,a:0};TORCHES=[];
+  for(const e of schema.entities){
+    if(e.type==='soul'){const named=pool[poolIdx%Math.max(1,pool.length)]||{name:"A wandering shade",line:"…"};poolIdx++;
+      souls.push({x:e.x,y:e.y,freed:false,bob:Math.random()*6,name:named.name,line:named.line});}
+    else if(e.type==='enemy'){enemies.push(mkEnemy(Math.floor(e.x),Math.floor(e.y),e.kind));}
+    else if(e.type==='exit'){exit={x:e.x,y:e.y};}
+    else if(e.type==='lorestone'){const s=loreById[e.ref];if(s)lorestones.push({x:e.x,y:e.y,id:s.id,title:s.title,body:s.body,read:false,ph:Math.random()*99});}
+    else if(e.type==='torch'){TORCHES.push({x:e.x,y:e.y,ph:Math.random()*99});}
+    else if(e.type==='start'){start={x:e.x,y:e.y,a:e.a||0};}
+  }
+  buildLightmap();
+  player.x=start.x;player.y=start.y;player.a=start.a;player.horn=0;
+  document.getElementById('lvl').querySelector('.val').textContent=schema.name;
+  const bossNm=bossbar.querySelector('.nm');if(bossNm)bossNm.textContent=schema.bossName||'Warden';
+  mini.width=MAP_W*7;mini.height=MAP_H*7;updHUD();
+}
+// Endless Mist — infinite, seeded, procedurally-generated branches that scale with depth.
+function endlessStyle(){return ['digger','digger','uniform','cellular'][(Math.random()*4)|0];}
+function genEndless(){
+  const size=Math.min(35,21+endlessDepth*2);
+  return generateLevel({width:size,height:size,style:endlessStyle(),counts:{
+    souls:Math.min(8,2+endlessDepth),hounds:Math.min(11,3+endlessDepth),
+    white:Math.min(4,((endlessDepth-1)/2|0)),lore:3}});
+}
+function startEndless(){endless=true;endlessDepth=1;player.hp=100;player.vig=100;showEndlessStory(genEndless());}
+function nextEndless(){document.exitPointerLock();endlessDepth++;player.hp=Math.min(100,player.hp+18);player.vig=100;showEndlessStory(genEndless());}
+function showEndlessStory(lvl){state='story';pendingSchema=lvl;bossbar.classList.remove('show');
+  const verse=lvl.verse?`<p style="font-family:'Cinzel',serif;font-style:normal;font-size:13px;letter-spacing:.18em;color:var(--gold);max-width:520px;margin:22px auto 12px;white-space:pre-line;line-height:1.7;text-transform:uppercase">${lvl.verse}</p>`:'';
+  scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">The Endless Mist<span class="sub">Depth ${endlessDepth} · ${lvl.style} · seed ${lvl.seed}</span></h1>
+    ${verse}
+    <p class="firstcap">${lvl.story}</p><button class="btn" id="goBtn">Descend</button>`;
+  overlay.classList.remove('hidden');
+  document.getElementById('goBtn').onclick=()=>{ensureAudio();loadSchemaLevel(pendingSchema);overlay.classList.add('hidden');state='play';sfxHorn();if(!IS_TOUCH)cv.requestPointerLock();};
 }
 function tileAt(x,y){const ix=x|0,iy=y|0;if(ix<0||iy<0||ix>=MAP_W||iy>=MAP_H)return 1;return map[iy][ix];}
 function levelClear(){return souls.every(s=>s.freed)&&!enemies.some(e=>e.kind==='boss'&&e.alive);}
@@ -513,8 +561,8 @@ function shoot(){const now=performance.now();if(now-lastShot<280)return;lastShot
   if(best){best.hp--;best.hurt=8;sfxHit();spawnHit(best.x,best.y,best.kind==='white');
     crossEl.classList.add('hit');setTimeout(()=>crossEl.classList.remove('hit'),110);
     if(best.hp<=0){best.alive=false;spawnHit(best.x,best.y,best.kind==='white');
-      if(best.kind==='boss'){const L=LEVELS[curLevel];flash(L.bossDeath||"The boss falls.");sfxRoar();spawnSummon(best.x,best.y);
-        codexUnlock("boss_"+BRANCHES[curLevel].toLowerCase());}
+      if(best.kind==='boss'){const L=LV;flash((L&&L.bossDeath)||"The boss falls.");sfxRoar();spawnSummon(best.x,best.y);
+        if(!endless)codexUnlock("boss_"+BRANCHES[curLevel].toLowerCase());}
       else flash("A hound of Annwn falls.");}}}
 function los(x0,y0,x1,y1){
   // grid-stepped DDA: walks tile boundaries in order, ~2x faster than fixed-step interp
@@ -622,7 +670,7 @@ function update(dt){
       player.hp=Math.min(100,player.hp+8);
       const named=s.name?("You free "+s.name+" — “"+s.line+"”"):"A soul slips free of the mist.";
       flash(named);sfxChime();spawnSoul(s.x,s.y);updHUD();
-      if(s.name)codexUnlock(soulCodexId(BRANCHES[curLevel],s.name));
+      if(s.name&&!endless)codexUnlock(soulCodexId(BRANCHES[curLevel],s.name));
       if(levelClear())flash("The portal opens. Seek it.");}}
   // nearest unread lorestone (prompt the player to read)
   nearestStone=null;
@@ -635,7 +683,7 @@ function update(dt){
     const dx=player.x-e.x,dy=player.y-e.y,d=Math.sqrt(dx*dx+dy*dy);e.d=d;
     if(e.stun>0){e.stun-=dt; if(Math.random()<0.25)spawn(e.x,e.y,0.5,1,[210,205,190],0.4,0.5,0.3); continue;}
     if(e.kind==='boss'){
-      if(!e.enraged&&e.hp<=e.maxhp/2){e.enraged=true;const bnm=(LEVELS[curLevel].bossName||'The boss').split('·')[0].trim();flash(bnm+" bellows — the pack answers!");sfxRoar();addShake(9);}
+      if(!e.enraged&&e.hp<=e.maxhp/2){e.enraged=true;const bnm=((LV&&LV.bossName)||'The boss').split('·')[0].trim();flash(bnm+" bellows — the pack answers!");sfxRoar();addShake(9);}
       e.summonT-=dt;
       if(e.enraged&&e.summonT<=0&&enemies.filter(x=>x.alive).length<9){e.summonT=6;spawnHoundNear(e);sfxRoar();}
       e.chargeCD-=dt;
@@ -656,14 +704,14 @@ function update(dt){
 function damage(n){player.hp-=n;updHUD();sfxHurt();addShake(Math.min(9,2+n*0.4));dmgFlash.style.opacity=0.9;setTimeout(()=>dmgFlash.style.opacity=0,110);
   if(IS_TOUCH)haptic(Math.min(40,12+n));
   if(player.hp<=0){player.hp=0;updHUD();die();}}
-function nextLevel(){if(curLevel+1>=LEVELS.length){winGame();return;}document.exitPointerLock();showStory(curLevel+1);}
+function nextLevel(){if(endless){nextEndless();return;}if(curLevel+1>=LEVELS.length){winGame();return;}document.exitPointerLock();showStory(curLevel+1);}
 
 /* ---------- renderer ---------- */
 const FOV=Math.PI/3, PLANE=Math.tan(FOV/2);
 const AMB=0.16, PR=10, PI_=0.85; // ambient, player torch range & intensity
 let curDir={x:1,y:0},curPlane={x:0,y:0},curHOR=0,curFlick=1,curZ=null;
 function render(now){
-  const L=LEVELS[curLevel];
+  const L=LV;
   const t=now*0.001, flick=clamp(0.93+0.05*Math.sin(t*5)+0.02*Math.sin(t*13.3),0.85,1);
   const dirX=Math.cos(player.a),dirY=Math.sin(player.a);
   const planeX=-dirY*PLANE, planeY=dirX*PLANE;
@@ -886,10 +934,12 @@ function showTitle(){state='title';bossbar.classList.remove('show');wrap.classLi
   scrollC.innerHTML=`<h1>ANNWN<span class="sub">The Four Branches</span></h1>
     <p class="firstcap">Wearing the face of the Otherworld's king, you must walk the realm of the dead for a year and a day. Free the shades bound in its mist. Bear witness to the Four Branches of the Mabinogi. Find your way home.</p>
     <button class="btn" id="startBtn">Enter the Mist</button>
+    <button class="tg" id="endlessBtn" style="margin-left:10px">The Endless Mist</button>
     ${cdxHint}
     <div class="ctrls">${IS_TOUCH?`<b>Left stick</b> — move &nbsp;·&nbsp; push hard to run<br><b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W S</b> / Up Down — walk &nbsp;·&nbsp; <b>A D</b> / Left Right — turn<br><b>Click canvas</b> — engage mouse-look (then A D strafe, Q strafes left)<br><b>Space / Click</b> — strike &nbsp;·&nbsp; <b>F</b> — horn &nbsp;·&nbsp; <b>E</b> — read &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
   overlay.classList.remove('hidden');
   document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
+  document.getElementById('endlessBtn').onclick=()=>{audioInit();ensureAudio();startEndless();};
   const cb=document.getElementById('cdxBtn');if(cb)cb.onclick=()=>{state='play';openCodex();};
 }
 function showStory(i){state='story';bossbar.classList.remove('show');const L=LEVELS[i];
@@ -909,7 +959,7 @@ function die(){state='dead';document.exitPointerLock();sfxDeath();addShake(12);b
     <p class="firstcap">The crimson-eared pack closes over you, and the mist takes its due. But Annwn does not let its borrowed king rest. Rise, and walk again.</p>
     <button class="btn" id="retryBtn">Walk Again</button>`;
   overlay.classList.remove('hidden');
-  document.getElementById('retryBtn').onclick=()=>{ensureAudio();player.hp=100;player.vig=100;loadLevel(curLevel);overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();};
+  document.getElementById('retryBtn').onclick=()=>{ensureAudio();player.hp=100;player.vig=100;if(endless&&curSchema)loadSchemaLevel(curSchema);else loadLevel(curLevel);overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();};
 }
 function openCodex(){if(state!=='play')return;state='codex';document.exitPointerLock();renderCodex();overlay.classList.remove('hidden');}
 function closeCodex(){if(state!=='codex')return;overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();}
