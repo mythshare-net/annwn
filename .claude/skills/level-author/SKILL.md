@@ -65,9 +65,14 @@ Preview one: `node tools/gen-preview.mjs --seed 42 --style cellular`
 **Convert** a legacy ASCII grid (old `LEVELS` shape) → schema: `asciiLevelToSchema()` in
 `src/levels/ascii.js`. Re-extract the four authored branches with `node tools/extract-levels.mjs`.
 
-**Tiled import** (when added): translate a Tiled JSON export — tile layer → `tiles` via the
-tileset's `wall`/`special` tile properties; object layer Class+properties → `entities`; long
-prose via a sidecar `*.meta.json`. Always pipe the result through `validateLevel`.
+**Tiled import** (`src/levels/tiled.js`): translate a [Tiled](https://www.mapeditor.org/) JSON
+export ("File → Export As → JSON") with `tiledToSchema(map, meta)`, or via the CLI:
+`node tools/import-tiled.mjs <map.tiled.json> <meta.json> [out.json]`.
+- One **tile layer**: non-zero GIDs are walls; a tileset tile property `special: true` → tile 2.
+- One **object layer**: each object's Class (`start`/`exit`/`torch`/`soul`/`enemy`/`lorestone`) is the
+  entity type; custom properties carry `kind` (enemy), `ref` (lorestone), `a` (start angle).
+- Prose/lore/soulPool/boss/tint/title/id come from the sidecar `meta` JSON. The result is piped
+  through `validateLevel` automatically.
 
 ## After any level change
 1. `npm run validate` (and `npm test` for the round-trip/parity + reachability tests)

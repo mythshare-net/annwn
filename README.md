@@ -47,8 +47,8 @@ Levels are data, validated and (optionally) generated, all sharing one schema (s
 - **Authored** JSON under `src/data/levels/` — extracted from the original hand-typed grids.
 - **Procedural** via **[ROT.js](https://ondras.github.io/rot.js/)** (MIT): `generateLevel({ seed, style })`
   with `digger` / `uniform` / `cellular` styles. Seeded for reproducible, shareable levels.
-- **Tiled** import (planned): translate a [Tiled](https://www.mapeditor.org/) JSON export into the
-  same schema.
+- **Tiled** import (`src/levels/tiled.js`): translate a [Tiled](https://www.mapeditor.org/) JSON
+  export into the same schema — `node tools/import-tiled.mjs <map.tiled.json> <meta.json>`.
 
 Every level — authored or generated — must pass `validateLevel()`, whose key invariant is
 **winnability**: the exit, boss, every soul and lorestone must be reachable on foot from the
