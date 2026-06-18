@@ -1,0 +1,55 @@
+{
+  "compressionlevel": -1,
+  "width": 7,
+  "height": 7,
+  "tilewidth": 16,
+  "tileheight": 16,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "infinite": false,
+  "type": "map",
+  "version": "1.10",
+  "tiledversion": "1.10.2",
+  "tilesets": [
+    {
+      "firstgid": 1,
+      "name": "walls",
+      "tilewidth": 16,
+      "tileheight": 16,
+      "tilecount": 2,
+      "columns": 2,
+      "tiles": [
+        { "id": 1, "properties": [{ "name": "special", "type": "bool", "value": true }] }
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "type": "tilelayer",
+      "name": "walls",
+      "width": 7,
+      "height": 7,
+      "data": [
+        1, 1, 1, 1, 1, 1, 1,
+        1, 0, 0, 0, 0, 0, 1,
+        1, 0, 2, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 1,
+        1, 1, 1, 1, 1, 1, 1
+      ]
+    },
+    {
+      "type": "objectgroup",
+      "name": "entities",
+      "objects": [
+        { "name": "spawn", "type": "start", "x": 24, "y": 24, "properties": [{ "name": "a", "type": "float", "value": 0 }] },
+        { "name": "portal", "type": "exit", "x": 88, "y": 88 },
+        { "name": "warden", "type": "enemy", "x": 56, "y": 56, "properties": [{ "name": "kind", "type": "string", "value": "boss" }] },
+        { "name": "shade", "type": "soul", "x": 24, "y": 88 },
+        { "name": "stone", "type": "lorestone", "x": 88, "y": 24, "properties": [{ "name": "ref", "type": "string", "value": "t1" }] },
+        { "name": "light", "type": "torch", "x": 56, "y": 24 }
+      ]
+    }
+  ]
+}
