@@ -6,6 +6,9 @@ import { RNG } from 'rot-js';
 export function setSeed(seed) {
   const s = (seed >>> 0) || 1;
   RNG.setSeed(s);
+  // ROT.RNG's first outputs are low-entropy for small seeds (≈ seed·0.0005); discard a few
+  // so downstream picks/maps are well-distributed. Deterministic, so seeds stay reproducible.
+  for (let i = 0; i < 16; i++) RNG.getUniform();
   return s;
 }
 export function rand() { return RNG.getUniform(); }            // [0,1)
