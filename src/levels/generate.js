@@ -5,23 +5,26 @@
 // Styles: 'digger'/'uniform' (rooms + corridors, guaranteed connected) and 'cellular'
 // (organic "mist-cave"; we keep only the largest region so the result stays winnable).
 import { Map as ROTMap } from 'rot-js';
-import { setSeed, rand, shuffle } from '../engine/rng.js';
+import { setSeed, shuffle, pick } from '../engine/rng.js';
 import { TILE, floorRegions, validateLevel } from './schema.js';
 
 // Small public-domain-flavoured pools so generated branches are valid and atmospheric.
+// Authentic Annwn / Mabinogion lore (public-domain sources) so generated branches read as
+// richly as the hand-authored campaign. The generator surfaces a varied, seeded subset.
 const DEFAULT_THEME = {
   name: '∞',
-  title: 'The Endless Mist — A Procedural Branch',
   branch: 'Annwn Unbound',
-  tint: [24, 30, 38],
-  boss: { name: 'A Warden of the Deep Mist', death: 'The warden falls; the mist thins, and the way opens.' },
-  story: 'Beyond the Four Branches the mist has no map. Each crossing reshapes the Otherworld. Free the shades, unmake the warden, and find the portal before Annwn forgets your name.',
-  verse: '"No bard has sung this road, / for it is made new each time it is walked." — of the Endless Mist',
   lore: [
     { title: 'The Shifting Roads', body: 'The deep mist of Annwn keeps no fixed shape. Walls rise where none stood, and the ford moves with the year. Only the hounds remember the true path, and they do not share it.' },
-    { title: 'Cŵn Annwn', body: 'White of body and red of ear, the Hounds of Annwn course the mist. To hear their cry is an omen; to walk among them, a debt.' },
-    { title: 'The Cauldron\'s Echo', body: 'Some say the Pair Dadeni was never wholly broken, and that its breath still rises in the deep mist, raising the slain mute and nameless.' },
-    { title: 'The Warden', body: 'At the heart of every crossing waits a warden of the gate, set to keep the demons of Annwn from the world of the living.' },
+    { title: 'Cŵn Annwn', body: 'White of body and red of ear, the Hounds of Annwn course the mist. Their cry is heard most clear on the eves of the great feasts and through the dark of autumn; to hear it near is a death-omen, and they alone of all hounds the dead obey.' },
+    { title: 'The Pair Dadeni', body: 'The Cauldron of Rebirth restores the slain cast into it by night — but they rise mute, and remember nothing of who they were. Some say its breath still rises in the deep mist, and the nameless you free here are its work.' },
+    { title: 'Caer Sidi', body: 'The Fortress of the Mound, the spiral caer, turns at the still centre of the Otherworld. "Complete was the prison of Gweir in Caer Sidi," sang Taliesin — and few who enter find the turning of the way out.' },
+    { title: 'The Cauldron of the Chief of Annwn', body: 'Rimmed with pearl and warmed by the breath of nine maidens, the cauldron of Pen Annwn will not boil the food of a coward. From it Taliesin had his poetry, and for it Arthur sailed — and only seven returned.' },
+    { title: 'Except Seven, None Returned', body: 'Three shiploads of Prydwen went into Annwn for its treasures, and out of Caer Sidi, Caer Feddwid and Caer Wydr only seven came home. The mist keeps the rest still.' },
+    { title: 'Caer Wydr — the Glass Fort', body: 'The Fortress of Glass stands guarded by six thousand men upon its wall, and no word could be had of their sentinel. Past its bright unanswering ramparts the way runs on into deeper mist.' },
+    { title: 'The Wild Hunt', body: 'Gwyn ap Nudd, given dominion over the demons of Annwn lest they destroy mankind, rides at the year\'s hinge with his hound Dormarth, gathering the souls of the slain. To meet the Hunt is to be counted among its quarry.' },
+    { title: 'A World of Delights', body: 'Annwn is no hell but a country of feasting and eternal youth, where no disease comes and the meat is never spent. Yet for the living who walk it unready, its peace is only another kind of forgetting.' },
+    { title: 'The Howling at Cadair Idris', body: 'On the high seat of Idris the spectral pack runs loudest, and the country folk bar their doors. To hear the Cŵn Annwn pass overhead is to be told, plainly, the hour of one\'s death.' },
   ],
   souls: [
     { name: 'A nameless shade', line: 'Which way was the ford? I have forgotten.' },
@@ -30,8 +33,35 @@ const DEFAULT_THEME = {
     { name: 'A drowned ferryman', line: 'I rose without a tongue, and yet I speak.' },
     { name: 'A maid of the hollow', line: 'The hounds passed close. Too close.' },
     { name: 'An old king', line: 'I wore another\'s face, and lost my own.' },
+    { name: 'One of the seven', line: 'We sailed in three ships. Only seven of us came back.' },
+    { name: 'A sentinel of the glass fort', line: 'Six thousand we were upon the wall. None of us answered.' },
+    { name: 'Gweir, in his chains', line: 'My song has not ceased since they bound me in Caer Sidi.' },
+    { name: 'A reborn warrior', line: 'The cauldron gave me back my body. It kept my name.' },
+    { name: 'A girl who heard the pack', line: 'I barred the door. It was not enough.' },
+    { name: 'A reveller of Caer Feddwid', line: 'The mead never ran dry. Neither did the years.' },
   ],
 };
+// Per-seed flavour pools so two procedural branches never feel identical.
+const TITLES = [
+  'The Endless Mist — A Procedural Branch', 'Caer Sidi — The Spiral Fort',
+  'Caer Feddwid — The Fort of Carousal', 'Caer Wydr — The Fortress of Glass',
+  'The Turning Ways of Annwn', 'Beyond the Four Branches',
+];
+const VERSES = [
+  '"No bard has sung this road, / for it is made new each time it is walked." — of the Endless Mist',
+  '"Complete was the prison of Gweir in Caer Sidi." — Preiddeu Annwfn',
+  '"Three full loads of Prydwen we went; / except seven, none rose up." — Preiddeu Annwfn',
+  '"Beyond the Glass Fort they saw not the valour of Arthur." — Preiddeu Annwfn',
+  '"The first word from the cauldron, when was it spoken? / By the breath of nine maidens it was kindled." — Preiddeu Annwfn',
+];
+const TINTS = [[24, 30, 38], [22, 34, 32], [34, 24, 30], [28, 26, 42], [20, 32, 40], [36, 30, 24]];
+const BOSSES = [
+  { name: 'A Warden of the Deep Mist', death: 'The warden falls; the mist thins, and the way opens.' },
+  { name: 'The Sentinel of the Glass Fort', death: 'The sentinel answers at last — by falling. The bright wall dims.' },
+  { name: 'A Hound-Lord of Annwn', death: 'The crimson-eared lord is unmade; its pack scatters into mist.' },
+  { name: 'A Reborn Champion of the Cauldron', death: 'You break what the cauldron remade. This time it does not rise.' },
+];
+const STORY = 'Beyond the Four Branches the mist has no map. Each crossing reshapes the Otherworld. Free the shades, unmake the warden, and find the portal before Annwn forgets your name.';
 
 function carve(style, w, h) {
   let gen;
@@ -93,6 +123,13 @@ export function generateLevel(opts = {}) {
   const height = opts.height || 25;
   const style = opts.style || 'digger';
   const theme = { ...DEFAULT_THEME, ...(opts.theme || {}) };
+  // seeded flavour — varies per seed, overridable via opts.theme
+  theme.title = theme.title || pick(TITLES);
+  theme.verse = theme.verse || pick(VERSES);
+  theme.tint = theme.tint || pick(TINTS);
+  theme.boss = theme.boss || pick(BOSSES);
+  theme.story = theme.story || STORY;
+  const lorePool = shuffle(theme.lore);
 
   let tiles, cells;
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -129,7 +166,7 @@ export function generateLevel(opts = {}) {
 
   const lore = [];
   for (let i = 0; i < nLore; i++) {
-    const src = theme.lore[i % theme.lore.length];
+    const src = lorePool[i % lorePool.length];
     const id = `gen-${seed}-${i}`;
     lore.push({ id, title: src.title, body: src.body });
     const c = take(); if (!c) break;

@@ -51,4 +51,16 @@ describe('procedural generation (ROT.js)', () => {
     expect(L.source).toBe('procedural');
     expect(L.seed).toBe(808);
   });
+
+  it('surfaces varied flavour across seeds (RNG warmup, not stuck on index 0)', () => {
+    const titles = new Set();
+    for (let s = 1; s <= 8; s++) titles.add(generateLevel({ seed: s, style: 'digger' }).title);
+    expect(titles.size).toBeGreaterThan(1);
+  });
+
+  it('draws lore from the authentic Mabinogion pool', () => {
+    const L = generateLevel({ seed: 5, style: 'digger' });
+    expect(L.lore.length).toBeGreaterThan(0);
+    for (const entry of L.lore) { expect(entry.title).toBeTruthy(); expect(entry.body.length).toBeGreaterThan(20); }
+  });
 });
