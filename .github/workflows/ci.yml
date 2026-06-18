@@ -27,3 +27,5 @@ jobs:
         run: npm i --no-save jsdom && node tools/smoke.mjs
       - name: Endless-mode integration smoke (loads + renders a procedural level)
         run: node tools/smoke-endless.mjs
+      - name: Campaign integration smoke (difficulty + checkpoint + render)
+        run: node tools/smoke-campaign.mjs

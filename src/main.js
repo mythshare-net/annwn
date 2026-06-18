@@ -284,6 +284,15 @@ const KIND={hound:{hp:3,spd:1.3,dmg:9,reach:0.95,scale:0.62,tex:'hound'},
 let state="title",curLevel=0,map=[],MAP_W=0,MAP_H=0,LM=null,TORCHES=[];
 // active level descriptor (legacy entry or normalized procedural schema) + endless-mode state
 let LV=null,endless=false,endlessDepth=0,curSchema=null,pendingSchema=null;
+// difficulty — scales damage taken and enemy speed; persisted across sessions
+const DIFF={easy:{dmg:0.7,spd:0.9,label:'Hunted'},normal:{dmg:1,spd:1,label:'Otherworld'},hard:{dmg:1.4,spd:1.12,label:"Annwn's Due"}};
+let difficulty='normal';
+try{const _d=localStorage.getItem('annwn.diff');if(_d&&DIFF[_d])difficulty=_d;}catch(e){}
+function setDifficulty(d){if(!DIFF[d])return;difficulty=d;try{localStorage.setItem('annwn.diff',d);}catch(e){}}
+// campaign checkpoint — last branch reached + souls freed, so a run survives closing the tab
+function saveCheckpoint(){if(endless)return;try{localStorage.setItem('annwn.save',JSON.stringify({lvl:curLevel,souls:totalSoulsFreed,diff:difficulty}));}catch(e){}}
+function loadCheckpoint(){try{return JSON.parse(localStorage.getItem('annwn.save'));}catch(e){return null;}}
+function clearCheckpoint(){try{localStorage.removeItem('annwn.save');}catch(e){}}
 let souls=[],enemies=[],parts=[],exit=null,lorestones=[],totalSoulsFreed=0,muzzle=0,lastShot=0,bobPhase=0;
 let nearestStone=null;
 const spriteList=[];
@@ -334,6 +343,7 @@ function loadLevel(i){
   // rename the boss bar for the current Branch
   const bossNm=bossbar.querySelector('.nm');if(bossNm)bossNm.textContent=L.bossName||'Boss';
   mini.width=MAP_W*7;mini.height=MAP_H*7;updHUD();
+  saveCheckpoint();
 }
 // Load a unified-schema level (procedural or otherwise) into the runtime — the schema-aware
 // twin of loadLevel(). Consumes tiles + entities produced by src/levels/generate.js.
@@ -693,7 +703,7 @@ function update(dt){
       if(e.charge>0)e.charge-=dt;
       else if(e.chargeCD<=0&&d>2&&d<8&&los(e.x,e.y,player.x,player.y)){e.charge=0.55;e.chargeCD=4.5;sfxRoar();addShake(6);}
     }
-    let mspd=KIND[e.kind].spd; if(e.kind==='boss'){if(e.enraged)mspd*=1.3;if(e.charge>0)mspd*=2.3;}
+    let mspd=KIND[e.kind].spd*DIFF[difficulty].spd; if(e.kind==='boss'){if(e.enraged)mspd*=1.3;if(e.charge>0)mspd*=2.3;}
     const sight=(e.kind==='boss')?13:8;
     const reach=KIND[e.kind].reach;
     // direct line-of-sight refreshes the hunt and the last-known player tile
@@ -717,7 +727,7 @@ function update(dt){
   if(exit&&levelClear()){const _dxe=exit.x-player.x,_dye=exit.y-player.y;if(_dxe*_dxe+_dye*_dye<0.36)nextLevel();}
   if(muzzle>0)muzzle--;
 }
-function damage(n){player.hp-=n;updHUD();sfxHurt();addShake(Math.min(9,2+n*0.4));dmgFlash.style.opacity=0.9;setTimeout(()=>dmgFlash.style.opacity=0,110);
+function damage(n){player.hp-=n*DIFF[difficulty].dmg;updHUD();sfxHurt();addShake(Math.min(9,2+n*0.4));dmgFlash.style.opacity=0.9;setTimeout(()=>dmgFlash.style.opacity=0,110);
   if(IS_TOUCH)haptic(Math.min(40,12+n));
   if(player.hp<=0){player.hp=0;updHUD();die();}}
 function nextLevel(){if(endless){nextEndless();return;}if(curLevel+1>=LEVELS.length){winGame();return;}document.exitPointerLock();showStory(curLevel+1);}
@@ -947,15 +957,22 @@ function showTitle(){state='title';bossbar.classList.remove('show');wrap.classLi
   const unlocked=Object.keys(CODEX).filter(k=>CODEX[k].unlocked).length;
   const total=Object.keys(CODEX).length;
   const cdxHint=unlocked>0?`<div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.22em;color:var(--gold);margin-top:14px;text-transform:uppercase">Codex: ${unlocked} of ${total} fragments &nbsp;·&nbsp; <button class="tg" id="cdxBtn" style="margin-left:8px">Open</button></div>`:'';
+  const save=loadCheckpoint();
+  const contBtn=(save&&save.lvl>0&&LEVELS[save.lvl])?`<button class="btn" id="contBtn" style="margin-right:10px">Continue — Annwn ${LEVELS[save.lvl].name}</button>`:'';
+  const diffRow=`<div class="setrow"><span>Trial</span>${Object.keys(DIFF).map(k=>`<button class="tg${k===difficulty?'':' off'}" data-diff="${k}">${DIFF[k].label}</button>`).join('')}</div>`;
   scrollC.innerHTML=`<h1>ANNWN<span class="sub">The Four Branches</span></h1>
     <p class="firstcap">Wearing the face of the Otherworld's king, you must walk the realm of the dead for a year and a day. Free the shades bound in its mist. Bear witness to the Four Branches of the Mabinogi. Find your way home.</p>
-    <button class="btn" id="startBtn">Enter the Mist</button>
+    ${contBtn}<button class="btn" id="startBtn">Enter the Mist</button>
     <button class="tg" id="endlessBtn" style="margin-left:10px">The Endless Mist</button>
+    ${diffRow}
     ${cdxHint}
     <div class="ctrls">${IS_TOUCH?`<b>Left stick</b> — move &nbsp;·&nbsp; push hard to run<br><b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W S</b> / Up Down — walk &nbsp;·&nbsp; <b>A D</b> / Left Right — turn<br><b>Click canvas</b> — engage mouse-look (then A D strafe, Q strafes left)<br><b>Space / Click</b> — strike &nbsp;·&nbsp; <b>F</b> — horn &nbsp;·&nbsp; <b>E</b> — read &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
   overlay.classList.remove('hidden');
-  document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
+  document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();clearCheckpoint();totalSoulsFreed=0;player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
   document.getElementById('endlessBtn').onclick=()=>{audioInit();ensureAudio();startEndless();};
+  const cont=document.getElementById('contBtn');
+  if(cont)cont.onclick=()=>{audioInit();ensureAudio();totalSoulsFreed=save.souls||0;if(save.diff)setDifficulty(save.diff);player.hp=100;player.vig=100;loadLevel(save.lvl);overlay.classList.add('hidden');state='play';sfxHorn();if(!IS_TOUCH)cv.requestPointerLock();};
+  scrollC.querySelectorAll('[data-diff]').forEach(b=>{b.onclick=()=>{setDifficulty(b.getAttribute('data-diff'));showTitle();};});
   const cb=document.getElementById('cdxBtn');if(cb)cb.onclick=()=>{state='play';openCodex();};
 }
 function showStory(i){state='story';bossbar.classList.remove('show');const L=LEVELS[i];
@@ -1002,7 +1019,7 @@ function renderCodex(){
   scrollC.querySelectorAll('.entry').forEach(el=>{el.onclick=()=>{const id=el.getAttribute('data-id');if(CODEX[id]&&CODEX[id].unlocked){codexActiveId=id;renderCodex();}};});
   const cb=document.getElementById('closeCdx');if(cb)cb.onclick=closeCodex;
 }
-function winGame(){state='win';document.exitPointerLock();sfxChime();bossbar.classList.remove('show');wrap.classList.remove('lowhp');
+function winGame(){state='win';document.exitPointerLock();sfxChime();bossbar.classList.remove('show');wrap.classList.remove('lowhp');clearCheckpoint();
   scrollC.innerHTML=`<h1 style="color:var(--gold)">HOMEWARD<span class="sub">The year is done</span></h1>
     <p class="firstcap">The Cauldron of Rebirth lies shattered, its cold fire quenched, and its keeper unhorsed. ${totalSoulsFreed} souls walk free of the mist. The borrowed crown lifts from your brow, and the grey gate of Annwn opens onto the green hills of Dyfed. You go home, Pwyll — Pwyll Pen Annwn, Head of the Otherworld, the friendship of Arawn won at last.</p>
     <button class="btn" id="againBtn">Begin Anew</button>`;
