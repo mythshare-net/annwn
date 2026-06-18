@@ -373,18 +373,21 @@ function loadSchemaLevel(schema){
   mini.width=MAP_W*7;mini.height=MAP_H*7;updHUD();
 }
 // Endless Mist — infinite, seeded, procedurally-generated branches that scale with depth.
-function endlessStyle(){return ['digger','digger','uniform','cellular'][(Math.random()*4)|0];}
+let runSeed=0;
+// turn an arbitrary seed string into a uint32 (FNV-1a) so players can share word-seeds
+function hashSeed(s){s=String(s).trim();if(!s)return 0;const n=parseInt(s,10);if(String(n)===s&&n>0)return n>>>0;let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 function genEndless(){
-  const size=Math.min(35,21+endlessDepth*2);
-  return generateLevel({width:size,height:size,style:endlessStyle(),counts:{
-    souls:Math.min(8,2+endlessDepth),hounds:Math.min(11,3+endlessDepth),
-    white:Math.min(4,((endlessDepth-1)/2|0)),lore:3}});
+  const d=endlessDepth, size=Math.min(35,21+d*2);
+  const styles=['digger','digger','uniform','cellular']; const style=styles[(runSeed+d)%styles.length];
+  return generateLevel({seed:runSeed+d,width:size,height:size,style,counts:{
+    souls:Math.min(8,2+d),hounds:Math.min(11,3+d),
+    white:Math.min(4,((d-1)/2|0)),lore:3}});
 }
-function startEndless(){endless=true;endlessDepth=1;player.hp=100;player.vig=100;showEndlessStory(genEndless());}
+function startEndless(seed){runSeed=(seed>>>0)||((Math.random()*1e9)>>>0);endless=true;endlessDepth=1;player.hp=100;player.vig=100;showEndlessStory(genEndless());}
 function nextEndless(){document.exitPointerLock();endlessDepth++;player.hp=Math.min(100,player.hp+18);player.vig=100;showEndlessStory(genEndless());}
 function showEndlessStory(lvl){state='story';pendingSchema=lvl;bossbar.classList.remove('show');
   const verse=lvl.verse?`<p style="font-family:'Cinzel',serif;font-style:normal;font-size:13px;letter-spacing:.18em;color:var(--gold);max-width:520px;margin:22px auto 12px;white-space:pre-line;line-height:1.7;text-transform:uppercase">${lvl.verse}</p>`:'';
-  scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">The Endless Mist<span class="sub">Depth ${endlessDepth} · ${lvl.style} · seed ${lvl.seed}</span></h1>
+  scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">The Endless Mist<span class="sub">Depth ${endlessDepth} · ${lvl.style} · run seed ${runSeed}</span></h1>
     ${verse}
     <p class="firstcap">${lvl.story}</p><button class="btn" id="goBtn">Descend</button>`;
   overlay.classList.remove('hidden');
@@ -964,12 +967,14 @@ function showTitle(){state='title';bossbar.classList.remove('show');wrap.classLi
     <p class="firstcap">Wearing the face of the Otherworld's king, you must walk the realm of the dead for a year and a day. Free the shades bound in its mist. Bear witness to the Four Branches of the Mabinogi. Find your way home.</p>
     ${contBtn}<button class="btn" id="startBtn">Enter the Mist</button>
     <button class="tg" id="endlessBtn" style="margin-left:10px">The Endless Mist</button>
+    <input id="seedInput" placeholder="seed (optional)" style="margin-left:8px;width:120px;background:rgba(8,12,12,.6);border:1px solid rgba(201,162,39,.4);color:var(--bone);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.1em;padding:7px 9px;border-radius:2px;vertical-align:middle">
+    <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.2em;color:var(--mist);margin-top:8px;text-transform:uppercase">Enter a seed to share or replay a descent</div>
     ${diffRow}
     ${cdxHint}
     <div class="ctrls">${IS_TOUCH?`<b>Left stick</b> — move &nbsp;·&nbsp; push hard to run<br><b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W S</b> / Up Down — walk &nbsp;·&nbsp; <b>A D</b> / Left Right — turn<br><b>Click canvas</b> — engage mouse-look (then A D strafe, Q strafes left)<br><b>Space / Click</b> — strike &nbsp;·&nbsp; <b>F</b> — horn &nbsp;·&nbsp; <b>E</b> — read &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
   overlay.classList.remove('hidden');
   document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();clearCheckpoint();totalSoulsFreed=0;player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
-  document.getElementById('endlessBtn').onclick=()=>{audioInit();ensureAudio();startEndless();};
+  document.getElementById('endlessBtn').onclick=()=>{audioInit();ensureAudio();const si=document.getElementById('seedInput');startEndless(hashSeed(si?si.value:''));};
   const cont=document.getElementById('contBtn');
   if(cont)cont.onclick=()=>{audioInit();ensureAudio();totalSoulsFreed=save.souls||0;if(save.diff)setDifficulty(save.diff);player.hp=100;player.vig=100;loadLevel(save.lvl);overlay.classList.add('hidden');state='play';sfxHorn();if(!IS_TOUCH)cv.requestPointerLock();};
   scrollC.querySelectorAll('[data-diff]').forEach(b=>{b.onclick=()=>{setDifficulty(b.getAttribute('data-diff'));showTitle();};});
