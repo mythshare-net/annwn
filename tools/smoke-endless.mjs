@@ -43,7 +43,12 @@ try { win.eval(scriptText); } catch (e) { fail('boot threw:\n' + (e.stack || e))
 const doc = win.document;
 const btn = doc.getElementById('endlessBtn');
 if (!btn) fail('no Endless Mist button on title screen');
+const seedIn = doc.getElementById('seedInput');
+if (!seedIn) fail('no seed input on title screen');
+seedIn.value = '12345';                         // share/replay a specific descent
 btn.click();                                   // → startEndless → showEndlessStory (state 'story')
+const sub = doc.querySelector('#scrollContent .sub')?.textContent || '';
+if (!sub.includes('run seed 12345')) fail(`descend screen did not honour the entered seed: "${sub}"`);
 const go = doc.getElementById('goBtn');
 if (!go) fail('Descend button did not appear after choosing Endless Mist');
 go.click();                                    // → loadSchemaLevel (state 'play')
