@@ -9,6 +9,33 @@
     28,
     46
   ],
+  "palette": {
+    "wall": [
+      88,
+      78,
+      102
+    ],
+    "wall2": [
+      76,
+      58,
+      104
+    ],
+    "floor": [
+      28,
+      24,
+      34
+    ],
+    "accent": [
+      24,
+      20,
+      32
+    ],
+    "light": [
+      210,
+      195,
+      255
+    ]
+  },
   "boss": {
     "name": "Gwyn ap Nudd · King of the Wild Hunt",
     "death": "Gwyn ap Nudd is unhorsed. The borrowed crown lifts from your brow."

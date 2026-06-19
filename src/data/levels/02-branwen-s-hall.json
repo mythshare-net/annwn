@@ -9,6 +9,33 @@
     20,
     28
   ],
+  "palette": {
+    "wall": [
+      98,
+      72,
+      66
+    ],
+    "wall2": [
+      110,
+      52,
+      52
+    ],
+    "floor": [
+      34,
+      22,
+      22
+    ],
+    "accent": [
+      40,
+      18,
+      18
+    ],
+    "light": [
+      255,
+      200,
+      150
+    ]
+  },
   "boss": {
     "name": "Efnysien · Breaker of the Cauldron",
     "death": "Efnysien shatters the Pair Dadeni from within — the cauldron is broken."

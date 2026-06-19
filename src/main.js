@@ -1,5 +1,6 @@
 "use strict";
 import { generateLevel } from "./levels/generate.js";
+import { resolvePalette, normLight } from "./levels/palette.js";
 import { pathStep } from "./ai/pathfinding.js";
 const cv=document.getElementById('game'), ctx=cv.getContext('2d');
 const mini=document.getElementById('mini'), mctx=mini.getContext('2d');
@@ -33,20 +34,24 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
 /* ---------- textures ---------- */
 const TT=64;
-function makeWall(br,bg,bb){
+// accent (seam colour) is optional; default reproduces the old flat ×0.45 darken of the base.
+function makeWall(br,bg,bb,accent){
   const a=new Uint32Array(TT*TT);
   for(let y=0;y<TT;y++)for(let x=0;x<TT;x++){
     let r=br,g=bg,b=bb; const n=(Math.random()*26-13); r+=n;g+=n;b+=n;
     const row=Math.floor(y/16), off=(row%2)?12:0;
-    if((y%16<2)||(((x+off)%24)<2)){r*=0.45;g*=0.45;b*=0.5;}
+    if((y%16<2)||(((x+off)%24)<2)){
+      if(accent){r=accent[0];g=accent[1];b=accent[2];}
+      else{r*=0.45;g*=0.45;b*=0.5;}
+    }
     else{const v=Math.sin(x*0.6)*4;r+=v;g+=v;b+=v;}
     a[y*TT+x]=PK(clamp(r,0,255),clamp(g,0,255),clamp(b,0,255));
   } return a;
 }
-function makeFloor(){
+function makeFloor(br=20,bg=30,bb=27){
   const a=new Uint32Array(TT*TT);
   for(let y=0;y<TT;y++)for(let x=0;x<TT;x++){
-    let r=20,g=30,b=27; const n=(Math.random()*18-9); r+=n;g+=n;b+=n;
+    let r=br,g=bg,b=bb; const n=(Math.random()*18-9); r+=n;g+=n;b+=n;
     if((x%32<2)||(y%32<2)){r*=0.6;g*=0.6;b*=0.6;}
     if(Math.abs(((x*7+y*3)%37)-18)<1){r*=0.5;g*=0.5;b*=0.5;}
     a[y*TT+x]=PK(clamp(r,0,255),clamp(g,0,255),clamp(b,0,255));
@@ -54,6 +59,21 @@ function makeFloor(){
 }
 const WALL_TEX=[null,makeWall(74,82,76),makeWall(92,42,52)];
 const FLOOR_TEX=makeFloor();
+// Build a per-level texture set + light cast from a resolved palette (see levels/palette.js).
+function buildTextures(pal){
+  return {
+    wall:[null, makeWall(pal.wall[0],pal.wall[1],pal.wall[2],pal.accent),
+                makeWall(pal.wall2[0],pal.wall2[1],pal.wall2[2],pal.accent)],
+    floor: makeFloor(pal.floor[0],pal.floor[1],pal.floor[2]),
+  };
+}
+// Current level's surfaces + lighting; default to the originals until a level loads.
+let curWall=WALL_TEX, curFloor=FLOOR_TEX, curLight=[1,1,1], curFog=null;
+function applyPalette(tint, partial){
+  const pal=resolvePalette(tint, partial);
+  const tx=buildTextures(pal);
+  curWall=tx.wall; curFloor=tx.floor; curLight=normLight(pal.light); curFog=pal.fog;
+}
 
 /* ---------- sprites ---------- */
 function sprite(w,h,draw){
@@ -185,6 +205,7 @@ const VERSES={
 /* ---------- levels — the Four Branches of the Mabinogi ---------- */
 const LEVELS=[
 {name:"I",title:"Glyn Cuch — The First Branch",branch:"Pwyll, Prince of Dyfed",tint:[26,40,38],
+ palette:{wall:[78,92,76],wall2:[60,84,58],floor:[22,34,24],accent:[20,30,22],light:[230,225,170]},
  bossName:"Hafgan · King at the Ford",
  bossDeath:"Hafgan falls in a single blow. Arawn's debt is paid.",
  story:`At Glyn Cuch you set your hounds upon a stag another pack had brought down — and that pack was Arawn's, lord of Annwn. To make amends you wear his face for a year and a day, and at the year's hinge must strike his rival Hafgan one blow only at the ford. The grey hounds with crimson ears bay beyond the gate. Walk the Otherworld. Free the shades bound in its mists.`,
@@ -208,6 +229,7 @@ const LEVELS=[
    {name:"Bleddyn the Huntsman",line:"Arawn's pack runs faster than ours."}
  ]},
 {name:"II",title:"Branwen's Hall — The Second Branch",branch:"Branwen ferch Llŷr",tint:[44,20,28],
+ palette:{wall:[98,72,66],wall2:[110,52,52],floor:[34,22,22],accent:[40,18,18],light:[255,200,150]},
  bossName:"Efnysien · Breaker of the Cauldron",
  bossDeath:"Efnysien shatters the Pair Dadeni from within — the cauldron is broken.",
  story:`The Pair Dadeni — the Cauldron of Rebirth — was carried to Ireland for Branwen's wedding, and into it the slain are cast to rise again mute and deathless. Now her brother Bran the Blessed lies wounded by a poisoned spear, and only Efnysien's last act will break the cauldron's curse. Press on. The Irish hall lies past the river Llinon.`,
@@ -231,6 +253,7 @@ const LEVELS=[
    {name:"Ynawg of the Seven",line:"Do not open the door to Cornwall."}
  ]},
 {name:"III",title:"The Mist of Dyfed — The Third Branch",branch:"Manawydan fab Llŷr",tint:[22,30,40],
+ palette:{wall:[74,84,98],wall2:[60,72,96],floor:[22,28,36],accent:[18,24,32],light:[200,215,255]},
  bossName:"Llwyd ap Cil Coed · The Enchanter",
  bossDeath:"Llwyd unweaves the mist — Dyfed returns to the green world.",
  story:`Returned from Ireland, you sit at Gorsedd Arberth with Pryderi, Cigfa and Rhiannon. A peal of thunder, and when the mist lifts every house, every herd, every soul in Dyfed is gone. Llwyd ap Cil Coed has cast this enchantment in vengeance for an old slight to Gwawl ap Clud. Free what remains, find the mouse-host, and bargain the kingdom back.`,
@@ -254,6 +277,7 @@ const LEVELS=[
    {name:"A swineherd of Arberth",line:"The mist took the hogs first."}
  ]},
 {name:"IV",title:"Caer Dathyl — The Fourth Branch",branch:"Math fab Mathonwy",tint:[36,28,46],
+ palette:{wall:[88,78,102],wall2:[76,58,104],floor:[28,24,34],accent:[24,20,32],light:[210,195,255]},
  bossName:"Gwyn ap Nudd · King of the Wild Hunt",
  bossDeath:"Gwyn ap Nudd is unhorsed. The borrowed crown lifts from your brow.",
  story:`At the year's hinge, the way home leads through Caer Dathyl, hall of Math fab Mathonwy, who cannot live save with his feet in a virgin's lap except when he is at war. Here Gwydion wove women from flowers and men from staves, and Lleu Llaw Gyffes was given his name. Past the bone-altar waits Gwyn ap Nudd, antlered king of the Wild Hunt — last warden of Annwn's gate.`,
@@ -337,6 +361,7 @@ function loadLevel(i){
     map.push(r);});
   MAP_W=map[0].length;MAP_H=map.length;
   TORCHES=(L.torches||[]).map(t=>({x:t[0]+0.5,y:t[1]+0.5,ph:Math.random()*99}));
+  applyPalette(L.tint, L.palette);
   buildLightmap();
   player.x=L.start.x;player.y=L.start.y;player.a=L.start.a;player.horn=0;
   document.getElementById('lvl').querySelector('.val').textContent=L.name;
@@ -366,6 +391,7 @@ function loadSchemaLevel(schema){
     else if(e.type==='torch'){TORCHES.push({x:e.x,y:e.y,ph:Math.random()*99});}
     else if(e.type==='start'){start={x:e.x,y:e.y,a:e.a||0};}
   }
+  applyPalette(schema.tint, schema.palette);
   buildLightmap();
   player.x=start.x;player.y=start.y;player.a=start.a;player.horn=0;
   document.getElementById('lvl').querySelector('.val').textContent=schema.name;
@@ -745,7 +771,7 @@ function render(now){
   const dirX=Math.cos(player.a),dirY=Math.sin(player.a);
   const planeX=-dirY*PLANE, planeY=dirX*PLANE;
   const bobPix=Math.sin(bobPhase)*RES_H*0.006;
-  const HOR=(RES_H*0.5+bobPix)|0; const tint=L.tint;
+  const HOR=(RES_H*0.5+bobPix)|0; const tint=curFog||L.tint;
   curDir={x:dirX,y:dirY};curPlane={x:planeX,y:planeY};curHOR=HOR;curFlick=flick;
   // ceiling (mist) — lit faintly by ambient + nearby torches via player proximity glow
   for(let y=0;y<HOR;y++){const f=y/HOR;
@@ -770,7 +796,7 @@ function render(now){
     const dStart=HOR-(lineH>>1), dEnd=dStart+lineH;
     let wallX=side===0?player.y+perp*rdy:player.x+perp*rdx; wallX-=Math.floor(wallX);
     let texX=(wallX*TT)|0; if((side===0&&rdx>0)||(side===1&&rdy<0))texX=TT-texX-1;
-    const tex=WALL_TEX[hit]||WALL_TEX[1];
+    const tex=curWall[hit]||curWall[1];
     // lighting at wall: sample lightmap at the hit cell + player-torch proximity
     const hx=player.x+perp*rdx, hy=player.y+perp*rdy;
     // perp is distance along the ray-vector in tile units; rdx/rdy aren't unit but |(rdx,rdy)| varies with camX
@@ -783,7 +809,7 @@ function render(now){
     let lin=AMB+stat+pl; const lit=stat+pl; lin=lin>1.25?1.25:lin;
     const w=lit/(lin+0.001);
     const sideShade=side===1?0.78:1;
-    const mR=lin*(1+0.10*w)*sideShade*flick, mG=lin*(1-0.03*w)*sideShade*flick, mB=lin*(1-0.18*w)*sideShade*flick;
+    const mR=lin*(1+0.10*w)*sideShade*flick*curLight[0], mG=lin*(1-0.03*w)*sideShade*flick*curLight[1], mB=lin*(1-0.18*w)*sideShade*flick*curLight[2];
     const cStart=Math.max(0,dStart),cEnd=Math.min(RES_H,dEnd);
     const stepTex=TT/lineH; let texPos=(cStart-dStart)*stepTex;
     for(let y=cStart;y<cEnd;y++){const ty=(texPos)&(TT-1);texPos+=stepTex;const c=tex[ty*TT+texX];
@@ -809,8 +835,8 @@ function render(now){
       const stp=lmAt(fx,fy);
       let lin=AMB+stp+plRow; const lit=stp+plRow; if(lin>1.25)lin=1.25;
       const ww=lit/(lin+0.001);
-      const fR=lin*(1+0.10*ww)*flick, fG=lin*(1-0.03*ww)*flick, fB=lin*(1-0.18*ww)*flick;
-      const c=FLOOR_TEX[((((fy-Math.floor(fy))*TT)|0)&(TT-1))*TT+((((fx-Math.floor(fx))*TT)|0)&(TT-1))];
+      const fR=lin*(1+0.10*ww)*flick*curLight[0], fG=lin*(1-0.03*ww)*flick*curLight[1], fB=lin*(1-0.18*ww)*flick*curLight[2];
+      const c=curFloor[((((fy-Math.floor(fy))*TT)|0)&(TT-1))*TT+((((fx-Math.floor(fx))*TT)|0)&(TT-1))];
       buf[o+x]=PK((c&255)*fR,((c>>8)&255)*fG,((c>>16)&255)*fB);
       fx+=dxStep;fy+=dyStep;
     }
@@ -864,7 +890,8 @@ function blit(sp,zbuf,dirX,dirY,planeX,planeY,HOR,flick,now){
   let mR=1,mG=1,mB=1;
   if(!selfLit){const stat=lmAt(sp.x,sp.y); const pl=PI_*Math.max(0,1-sp.d/PR);
     let lin=AMB+stat+pl; const lit=stat+pl; lin=lin>1.25?1.25:lin; const ww=lit/(lin+0.001);
-    mR=lin*(1+0.10*ww)*flick; mG=lin*(1-0.03*ww)*flick; mB=lin*(1-0.18*ww)*flick;}
+    mR=lin*(1+0.10*ww)*flick*curLight[0]; mG=lin*(1-0.03*ww)*flick*curLight[1]; mB=lin*(1-0.18*ww)*flick*curLight[2];}
+  else if(sp.kind==='flame'){mR=curLight[0]; mG=curLight[1]; mB=curLight[2];} // torches take the level's light hue
   const hurt=sp.ref&&sp.ref.hurt>0;
   const enr=sp.kind==='boss'&&sp.ref&&sp.ref.enraged;
   const dsx=(screenX-w/2)|0,dex=(screenX+w/2)|0;

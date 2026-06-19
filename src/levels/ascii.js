@@ -49,6 +49,7 @@ export function asciiLevelToSchema(L, index = 0) {
     title: L.title,
     branch: L.branch,
     tint: L.tint,
+    ...(L.palette ? { palette: L.palette } : {}),
     boss: { name: L.bossName, death: L.bossDeath },
     story: L.story,
     verse: L.verse,
