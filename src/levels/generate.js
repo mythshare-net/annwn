@@ -41,20 +41,42 @@ const DEFAULT_THEME = {
     { name: 'A reveller of Caer Feddwid', line: 'The mead never ran dry. Neither did the years.' },
   ],
 };
-// Per-seed flavour pools so two procedural branches never feel identical.
-const TITLES = [
-  'The Endless Mist — A Procedural Branch', 'Caer Sidi — The Spiral Fort',
-  'Caer Feddwid — The Fort of Carousal', 'Caer Wydr — The Fortress of Glass',
-  'The Turning Ways of Annwn', 'Beyond the Four Branches',
+// Per-seed flavour THEMES so two procedural branches never feel identical. Each bundle ties a
+// named fort to its own tint + palette (walls/floor/seams/light), so the look matches the name —
+// the Glass Fort reads cold and pale, the Fort of Carousal warm and red, and so on.
+const THEMES = [
+  { title: 'The Endless Mist — A Procedural Branch',
+    verse: '"No bard has sung this road, / for it is made new each time it is walked." — of the Endless Mist',
+    tint: [22, 34, 32],
+    palette: { wall: [72, 86, 74], wall2: [58, 80, 66], floor: [20, 30, 24], accent: [16, 26, 20], light: [210, 225, 180] } },
+  { title: 'Caer Sidi — The Spiral Fort',
+    verse: '"Complete was the prison of Gweir in Caer Sidi." — Preiddeu Annwfn',
+    tint: [28, 26, 42],
+    palette: { wall: [84, 78, 104], wall2: [70, 56, 108], floor: [26, 22, 34], accent: [22, 18, 30], light: [205, 190, 255] } },
+  { title: 'Caer Feddwid — The Fort of Carousal',
+    verse: '"Three full loads of Prydwen we went; / except seven, none rose up." — Preiddeu Annwfn',
+    tint: [34, 24, 30],
+    palette: { wall: [104, 76, 68], wall2: [116, 56, 52], floor: [34, 24, 22], accent: [40, 20, 18], light: [255, 200, 150] } },
+  { title: 'Caer Wydr — The Fortress of Glass',
+    verse: '"Beyond the Glass Fort they saw not the valour of Arthur." — Preiddeu Annwfn',
+    tint: [20, 32, 40],
+    palette: { wall: [120, 134, 150], wall2: [96, 120, 150], floor: [30, 38, 46], accent: [44, 56, 68], light: [200, 220, 255] } },
+  { title: 'The Turning Ways of Annwn',
+    verse: '"The first word from the cauldron, when was it spoken? / By the breath of nine maidens it was kindled." — Preiddeu Annwfn',
+    tint: [24, 30, 38],
+    palette: { wall: [84, 86, 90], wall2: [70, 72, 82], floor: [24, 28, 32], accent: [20, 22, 26], light: [230, 225, 210] } },
+  { title: 'Beyond the Four Branches',
+    verse: '"Beyond the Four Branches the mist keeps no map." — of the deep Otherworld',
+    tint: [36, 30, 24],
+    palette: { wall: [100, 86, 66], wall2: [96, 74, 48], floor: [32, 26, 18], accent: [28, 22, 14], light: [255, 215, 160] } },
 ];
-const VERSES = [
-  '"No bard has sung this road, / for it is made new each time it is walked." — of the Endless Mist',
-  '"Complete was the prison of Gweir in Caer Sidi." — Preiddeu Annwfn',
-  '"Three full loads of Prydwen we went; / except seven, none rose up." — Preiddeu Annwfn',
-  '"Beyond the Glass Fort they saw not the valour of Arthur." — Preiddeu Annwfn',
-  '"The first word from the cauldron, when was it spoken? / By the breath of nine maidens it was kindled." — Preiddeu Annwfn',
-];
-const TINTS = [[24, 30, 38], [22, 34, 32], [34, 24, 30], [28, 26, 42], [20, 32, 40], [36, 30, 24]];
+// Organic cave dressing — selection is biased toward this when carving with the 'cellular' style.
+const CAVE_THEME = {
+  title: 'The Mist-Caves of Annwn',
+  verse: '"In the four-cornered castle the mist runs underground; / its turning ways were never mapped." — of the Mist-Caves',
+  tint: [20, 32, 28],
+  palette: { wall: [64, 82, 68], wall2: [52, 74, 58], floor: [18, 28, 22], accent: [14, 22, 16], light: [190, 220, 180] },
+};
 const BOSSES = [
   { name: 'A Warden of the Deep Mist', death: 'The warden falls; the mist thins, and the way opens.' },
   { name: 'The Sentinel of the Glass Fort', death: 'The sentinel answers at last — by falling. The bright wall dims.' },
@@ -123,10 +145,16 @@ export function generateLevel(opts = {}) {
   const height = opts.height || 25;
   const style = opts.style || 'digger';
   const theme = { ...DEFAULT_THEME, ...(opts.theme || {}) };
-  // seeded flavour — varies per seed, overridable via opts.theme
-  theme.title = theme.title || pick(TITLES);
-  theme.verse = theme.verse || pick(VERSES);
-  theme.tint = theme.tint || pick(TINTS);
+  // seeded flavour — pick one coherent THEME bundle (title + verse + tint + palette) so the
+  // look matches the name; cellular caves lean toward the organic CAVE_THEME. Overridable via opts.theme.
+  if (!theme.title) {
+    const pool = style === 'cellular' ? [CAVE_THEME, CAVE_THEME, CAVE_THEME, ...THEMES] : THEMES;
+    const bundle = pick(pool);
+    theme.title = bundle.title;
+    theme.verse = theme.verse || bundle.verse;
+    theme.tint = theme.tint || bundle.tint;
+    theme.palette = theme.palette || bundle.palette;
+  }
   theme.boss = theme.boss || pick(BOSSES);
   theme.story = theme.story || STORY;
   const lorePool = shuffle(theme.lore);
@@ -185,6 +213,7 @@ export function generateLevel(opts = {}) {
     title: theme.title,
     branch: theme.branch,
     tint: theme.tint,
+    palette: theme.palette,
     boss: theme.boss,
     story: theme.story,
     verse: theme.verse,

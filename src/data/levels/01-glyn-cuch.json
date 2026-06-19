@@ -9,6 +9,33 @@
     40,
     38
   ],
+  "palette": {
+    "wall": [
+      78,
+      92,
+      76
+    ],
+    "wall2": [
+      60,
+      84,
+      58
+    ],
+    "floor": [
+      22,
+      34,
+      24
+    ],
+    "accent": [
+      20,
+      30,
+      22
+    ],
+    "light": [
+      230,
+      225,
+      170
+    ]
+  },
   "boss": {
     "name": "Hafgan · King at the Ford",
     "death": "Hafgan falls in a single blow. Arawn's debt is paid."

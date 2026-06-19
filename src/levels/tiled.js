@@ -71,6 +71,7 @@ export function tiledToSchema(map, meta = {}) {
     title: meta.title || 'A Tiled Branch',
     branch: meta.branch || '',
     tint: meta.tint || [26, 30, 36],
+    ...(meta.palette ? { palette: meta.palette } : {}),
     boss: meta.boss || { name: 'A Warden', death: 'The warden falls.' },
     story: meta.story || '',
     verse: meta.verse || '',

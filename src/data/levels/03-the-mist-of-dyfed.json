@@ -9,6 +9,33 @@
     30,
     40
   ],
+  "palette": {
+    "wall": [
+      74,
+      84,
+      98
+    ],
+    "wall2": [
+      60,
+      72,
+      96
+    ],
+    "floor": [
+      22,
+      28,
+      36
+    ],
+    "accent": [
+      18,
+      24,
+      32
+    ],
+    "light": [
+      200,
+      215,
+      255
+    ]
+  },
   "boss": {
     "name": "Llwyd ap Cil Coed · The Enchanter",
     "death": "Llwyd unweaves the mist — Dyfed returns to the green world."

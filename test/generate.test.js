@@ -58,6 +58,21 @@ describe('procedural generation (ROT.js)', () => {
     expect(titles.size).toBeGreaterThan(1);
   });
 
+  it('attaches a coherent per-level palette (valid [r,g,b] triples)', () => {
+    const L = generateLevel({ seed: 73, style: 'digger' });
+    expect(L.palette).toBeTruthy();
+    for (const k of ['wall', 'wall2', 'floor', 'accent', 'light']) {
+      const v = L.palette[k];
+      expect(Array.isArray(v) && v.length === 3, `palette.${k}`).toBe(true);
+    }
+  });
+
+  it('biases cellular caves toward the mist-cave theme', () => {
+    const titles = new Set();
+    for (let s = 1; s <= 12; s++) titles.add(generateLevel({ seed: s, style: 'cellular' }).title);
+    expect(titles.has('The Mist-Caves of Annwn')).toBe(true);
+  });
+
   it('draws lore from the authentic Mabinogion pool', () => {
     const L = generateLevel({ seed: 5, style: 'digger' });
     expect(L.lore.length).toBeGreaterThan(0);

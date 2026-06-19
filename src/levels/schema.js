@@ -74,6 +74,13 @@ export function validateLevel(L) {
   if (L.schema !== 1) e(`schema must be 1 (got ${L.schema})`);
   for (const k of ['id', 'name', 'title']) if (typeof L[k] !== 'string' || !L[k]) e(`${k} must be a non-empty string`);
   if (!Array.isArray(L.tint) || L.tint.length !== 3) e('tint must be [r,g,b]');
+  if (L.palette != null) {
+    if (typeof L.palette !== 'object') e('palette must be an object');
+    else for (const k of ['wall', 'wall2', 'floor', 'accent', 'light', 'fog']) {
+      const v = L.palette[k];
+      if (v != null && (!Array.isArray(v) || v.length !== 3)) e(`palette.${k} must be [r,g,b]`);
+    }
+  }
   if (!L.boss || typeof L.boss.name !== 'string') w('boss.name missing');
 
   // tiles
