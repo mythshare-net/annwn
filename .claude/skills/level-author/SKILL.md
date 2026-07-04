@@ -33,14 +33,19 @@ Always validate before shipping — CI runs `npm run validate` and the test suit
 
 ### Tiles
 - `0` floor (walkable) · `1` wall · `2` special wall (still **solid** — blocks movement & sight).
+- `3` secret wall — renders as a wall and blocks enemy sight/pathing, but the **player** can
+  walk through it (revealing it permanently). Passable for reachability/flood-fill. Never on
+  the border. The generator uses it to hide reward pockets.
 - The outer border must be solid wall.
 
 ### Entities (`type`, float `x`/`y` at tile centers)
 - `start` (also `a` = facing angle, radians) — exactly one.
 - `exit` — at least one.
-- `enemy` with `kind`: `hound` | `white` | `boss` — exactly one `boss`.
+- `enemy` with `kind`: `hound` | `white` | `elite` | `boss` — exactly one `boss`. (`elite` is a
+  tougher palette-tinted hound; the loader also auto-promotes some hounds in named-fort levels.)
 - `soul` — freed by walking adjacent; assigned a name from `soulPool` at load.
 - `lorestone` with `ref` → must match a `lore[].id`.
+- `pickup` with `kind`: `herb` (heals 25) | `ward` (absorbs one blow).
 - `torch` — light source (may sit in/near walls).
 
 ## Critical invariant — winnability
