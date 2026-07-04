@@ -31,7 +31,7 @@ function anyObj() {
 win.HTMLCanvasElement.prototype.getContext = () => anyObj();
 win.AudioContext = win.webkitAudioContext = function () {
   return { createGain: () => ({ connect() {}, gain: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} } }),
-    createOscillator: () => ({ connect: () => anyObj(), frequency: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} }, type: '', start() {}, stop() {} }),
+    createOscillator: () => ({ connect: () => anyObj(), frequency: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} }, type: '', start() {}, stop() {} }),
     createBiquadFilter: () => anyObj(), createBufferSource: () => anyObj(),
     createBuffer: () => ({ getChannelData: () => new Float32Array(8) }),
     destination: {}, state: 'running', resume() {}, currentTime: 0, sampleRate: 44100 };

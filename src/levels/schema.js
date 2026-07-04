@@ -5,17 +5,21 @@
 //   { schema:1, id, name, title, branch, tint:[r,g,b], boss:{name,death},
 //     story, verse, source:"authored"|"tiled"|"procedural", seed,
 //     width, height,
-//     tiles:  height rows of width ints  (0=floor, 1=wall, 2=special wall)
-//     entities: [{type,x,y,...}]  start|exit|torch|soul|enemy(kind)|lorestone(ref)
+//     tiles:  height rows of width ints  (0=floor, 1=wall, 2=special wall, 3=secret wall —
+//             renders as a wall but is walkable; hides pockets the player can push through)
+//     entities: [{type,x,y,...}]  start|exit|torch|soul|enemy(kind)|lorestone(ref)|pickup(kind)
 //     lore:    [{id,title,body}]
 //     soulPool:[{name,line}] }
 
-export const TILE = { FLOOR: 0, WALL: 1, SPECIAL: 2 };
-export const ENTITY_TYPES = ['start', 'exit', 'torch', 'soul', 'enemy', 'lorestone'];
-export const ENEMY_KINDS = ['hound', 'white', 'boss'];
+export const TILE = { FLOOR: 0, WALL: 1, SPECIAL: 2, SECRET: 3 };
+export const ENTITY_TYPES = ['start', 'exit', 'torch', 'soul', 'enemy', 'lorestone', 'pickup'];
+export const ENEMY_KINDS = ['hound', 'white', 'boss', 'elite'];
+export const PICKUP_KINDS = ['herb', 'ward'];
 // entity types that MUST sit on a walkable floor tile
-const ON_FLOOR = new Set(['start', 'exit', 'soul', 'enemy', 'lorestone']);
+const ON_FLOOR = new Set(['start', 'exit', 'soul', 'enemy', 'lorestone', 'pickup']);
 
+// Solid for movement/reachability. SECRET is passable (that's the point of it) but still
+// renders as a wall, so flood-fill connectivity legitimately flows through it.
 function isWall(v) { return v === TILE.WALL || v === TILE.SPECIAL; }
 
 /** Flood-fill reachability over floor tiles (4-connected). Returns true if (tx,ty) is
@@ -92,7 +96,7 @@ export function validateLevel(L) {
     if (L.tiles[y].length !== width) { e(`row ${y} has ragged width`); continue; }
     for (let x = 0; x < width; x++) {
       const v = L.tiles[y][x];
-      if (v !== 0 && v !== 1 && v !== 2) e(`tile (${x},${y}) has illegal value ${v}`);
+      if (v !== 0 && v !== 1 && v !== 2 && v !== 3) e(`tile (${x},${y}) has illegal value ${v}`);
       if ((y === 0 || y === h - 1 || x === 0 || x === width - 1) && !isWall(v)) e(`border tile (${x},${y}) is not solid`);
     }
   }
@@ -116,6 +120,7 @@ export function validateLevel(L) {
       if (!ENEMY_KINDS.includes(en.kind)) e(`enemy at (${en.x},${en.y}) has bad kind "${en.kind}"`);
       if (en.kind === 'boss') bosses++;
     }
+    if (en.type === 'pickup' && !PICKUP_KINDS.includes(en.kind)) e(`pickup at (${en.x},${en.y}) has bad kind "${en.kind}"`);
     if (en.type === 'lorestone' && !loreIds.has(en.ref)) e(`lorestone references unknown lore "${en.ref}"`);
   }
   if (starts !== 1) e(`expected exactly 1 start (got ${starts})`);

@@ -73,6 +73,29 @@ describe('procedural generation (ROT.js)', () => {
     expect(titles.has('The Mist-Caves of Annwn')).toBe(true);
   });
 
+  it('places herb/ward pickups on floor tiles', () => {
+    const L = generateLevel({ seed: 21, style: 'digger' });
+    const pks = L.entities.filter((e) => e.type === 'pickup');
+    expect(pks.length).toBeGreaterThan(0);
+    for (const p of pks) expect(['herb', 'ward']).toContain(p.kind);
+  });
+
+  it('secret pockets stay connected and validate (tile 3 is passable)', () => {
+    let found = 0;
+    for (let s = 1; s <= 20; s++) {
+      const L = generateLevel({ seed: s, style: 'digger' });
+      const hasSecret = L.tiles.some((row) => row.includes(TILE.SECRET));
+      if (!hasSecret) continue;
+      found++;
+      expect(floorRegions(L.tiles)).toBe(1);
+      const start = L.entities.find((e) => e.type === 'start');
+      for (const p of L.entities.filter((e) => e.type === 'pickup')) {
+        expect(reachable(L.tiles, start.x, start.y, p.x, p.y)).toBe(true);
+      }
+    }
+    expect(found).toBeGreaterThan(0); // ~60% odds over 20 seeds — statistically certain
+  });
+
   it('draws lore from the authentic Mabinogion pool', () => {
     const L = generateLevel({ seed: 5, style: 'digger' });
     expect(L.lore.length).toBeGreaterThan(0);

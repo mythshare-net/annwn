@@ -10,6 +10,12 @@ seeded, procedurally-generated branches that deepen as you descend. Pick a **Tri
 (Hunted / Otherworld / Annwn's Due) to scale difficulty; campaign progress is checkpointed,
 so a **Continue** option resumes your last branch.
 
+Each branch has its own palette, fog, and torchlight; a procedural ambient soundscape swells
+when the pack hunts you, and hounds cry from their true bearing (spatial audio). Hunt with
+mouse+keyboard, touch twin-sticks, or a **gamepad** (sticks move/turn · A strike · B horn ·
+X read · Y codex · Start pause). Pause holds volume / FOV / screen-shake / flash-reduction
+settings. Watch for vervain herbs, ward orbs, false walls — and for a horn that is not yours.
+
 ## Develop
 
 The game source now lives in `src/` and builds, via [Vite](https://vitejs.dev) +

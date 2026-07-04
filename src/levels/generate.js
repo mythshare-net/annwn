@@ -5,7 +5,7 @@
 // Styles: 'digger'/'uniform' (rooms + corridors, guaranteed connected) and 'cellular'
 // (organic "mist-cave"; we keep only the largest region so the result stays winnable).
 import { Map as ROTMap } from 'rot-js';
-import { setSeed, shuffle, pick } from '../engine/rng.js';
+import { setSeed, shuffle, pick, rand } from '../engine/rng.js';
 import { TILE, floorRegions, validateLevel } from './schema.js';
 
 // Small public-domain-flavoured pools so generated branches are valid and atmospheric.
@@ -131,6 +131,38 @@ function keepLargestRegion(tiles) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (id[y * w + x] !== -1 && id[y * w + x] !== best) tiles[y][x] = TILE.WALL;
 }
 
+// Carve a hidden pocket behind a secret wall (tile 3): renders as a wall, but the player can
+// push through it. The pocket gets a herb pickup — reward for probing the mist. Seeded and
+// deterministic. Returns the pocket cell or null if no spot qualifies.
+function carveSecret(tiles) {
+  const h = tiles.length, w = tiles[0].length;
+  const cands = [];
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    if (tiles[y][x] !== TILE.WALL) continue;
+    // exactly one floor neighbour → a wall face the player walks past
+    let f = null, n = 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (tiles[y + dy][x + dx] === TILE.FLOOR) { f = [dx, dy]; n++; }
+    }
+    if (n !== 1) continue;
+    // pocket goes on the far side, strictly interior, currently solid, and enclosed
+    const px = x - f[0], py = y - f[1];
+    if (px < 1 || py < 1 || px >= w - 1 || py >= h - 1) continue;
+    if (tiles[py][px] !== TILE.WALL) continue;
+    let sealed = true;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (px + dx === x && py + dy === y) continue;
+      if (tiles[py + dy][px + dx] === TILE.FLOOR) sealed = false;
+    }
+    if (sealed) cands.push({ x, y, px, py });
+  }
+  if (!cands.length) return null;
+  const c = pick(cands);
+  tiles[c.y][c.x] = TILE.SECRET;
+  tiles[c.py][c.px] = TILE.FLOOR;
+  return c;
+}
+
 function floorCells(tiles) {
   const cells = [];
   for (let y = 0; y < tiles.length; y++) for (let x = 0; x < tiles[0].length; x++) if (tiles[y][x] === TILE.FLOOR) cells.push([x, y]);
@@ -186,6 +218,8 @@ export function generateLevel(opts = {}) {
   const nHounds = Math.min(counts.hounds ?? 5, free.length);
   const nWhite = Math.min(counts.white ?? 2, free.length);
   const nLore = Math.min(counts.lore ?? 3, theme.lore.length, free.length);
+  const nHerbs = Math.min(counts.herbs ?? 2, free.length);
+  const nWards = Math.min(counts.wards ?? 1, free.length);
 
   const entities = [];
   entities.push({ type: 'start', x: startC[0] + 0.5, y: startC[1] + 0.5, a: 0 });
@@ -203,8 +237,15 @@ export function generateLevel(opts = {}) {
   for (let i = 0; i < nSouls; i++) { const c = take(); if (!c) break; entities.push({ type: 'soul', x: c[0] + 0.5, y: c[1] + 0.5 }); }
   for (let i = 0; i < nHounds; i++) { const c = take(); if (!c) break; entities.push({ type: 'enemy', kind: 'hound', x: c[0] + 0.5, y: c[1] + 0.5 }); }
   for (let i = 0; i < nWhite; i++) { const c = take(); if (!c) break; entities.push({ type: 'enemy', kind: 'white', x: c[0] + 0.5, y: c[1] + 0.5 }); }
+  for (let i = 0; i < nHerbs; i++) { const c = take(); if (!c) break; entities.push({ type: 'pickup', kind: 'herb', x: c[0] + 0.5, y: c[1] + 0.5 }); }
+  for (let i = 0; i < nWards; i++) { const c = take(); if (!c) break; entities.push({ type: 'pickup', kind: 'ward', x: c[0] + 0.5, y: c[1] + 0.5 }); }
   // a handful of torches for light
   for (let i = 0; i < 6; i++) { const c = take(); if (!c) break; entities.push({ type: 'torch', x: c[0] + 0.5, y: c[1] + 0.5 }); }
+  // ~60% of levels hide a secret pocket behind a false wall, with a herb inside
+  if (rand() < 0.6) {
+    const s = carveSecret(tiles);
+    if (s) entities.push({ type: 'pickup', kind: 'herb', x: s.px + 0.5, y: s.py + 0.5 });
+  }
 
   const level = {
     schema: 1,
