@@ -1,5 +1,5 @@
 // Convert a legacy ASCII-grid level (the original `LEVELS` entry shape) into the unified
-// schema. Mirrors the parsing in the original loadLevel(): grid chars S/E/W/B/3/L become
+// schema. Mirrors the original ASCII-grid loader: grid chars S/E/W/B/3/L become
 // entities and their cell becomes floor; '1'/'2' are walls; '.'/'0' are floor. Lorestone
 // 'L' cells bind to lore defs in row-scan order (same as the original positional binding).
 

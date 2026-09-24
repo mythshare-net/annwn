@@ -68,7 +68,8 @@ const lvl = generateLevel({ seed: 42, style: 'digger', width: 25, height: 25 });
 Preview one: `node tools/gen-preview.mjs --seed 42 --style cellular`
 
 **Convert** a legacy ASCII grid (old `LEVELS` shape) → schema: `asciiLevelToSchema()` in
-`src/levels/ascii.js`. Re-extract the four authored branches with `node tools/extract-levels.mjs`.
+`src/levels/ascii.js`. The four authored branches already live as JSON in `src/data/levels/` and
+are loaded by the game directly (filename order = campaign order) — edit the JSON, not `main.js`.
 
 **Tiled import** (`src/levels/tiled.js`): translate a [Tiled](https://www.mapeditor.org/) JSON
 export ("File → Export As → JSON") with `tiledToSchema(map, meta)`, or via the CLI:
