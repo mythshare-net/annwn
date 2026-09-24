@@ -2,6 +2,7 @@
 import { generateLevel } from "./levels/generate.js";
 import { resolvePalette, normLight } from "./levels/palette.js";
 import { pathStep } from "./ai/pathfinding.js";
+const LEVEL_FILES=import.meta.glob("./data/levels/*.json",{eager:true});
 const cv=document.getElementById('game'), ctx=cv.getContext('2d');
 const mini=document.getElementById('mini'), mctx=mini.getContext('2d');
 const overlay=document.getElementById('overlay'), scrollC=document.getElementById('scrollContent');
@@ -216,14 +217,13 @@ const BRANCH_TITLES={I:"Pwyll · The First Branch",II:"Branwen · The Second Bra
 function codexSeed(){
   // Seed from lorestones in each level
   LEVELS.forEach((L,i)=>{
-    (L.lorestones||[]).forEach(s=>{CODEX[s.id]={branch:BRANCHES[i],title:s.title,body:s.body,unlocked:false};});
+    (L.lore||[]).forEach(s=>{CODEX[s.id]={branch:BRANCHES[i],title:s.title,body:s.body,unlocked:false};});
     // boss entry
-    if(L.bossName){const id="boss_"+BRANCHES[i].toLowerCase();
-      CODEX[id]={branch:BRANCHES[i],title:L.bossName.split('·')[0].trim(),body:L.bossDeath||"",unlocked:false};}
+    if(L.boss&&L.boss.name){const id="boss_"+BRANCHES[i].toLowerCase();
+      CODEX[id]={branch:BRANCHES[i],title:L.boss.name.split('·')[0].trim(),body:L.boss.death||"",unlocked:false};}
     // soul-pool entries — unlocked when that named soul is freed
     (L.soulPool||[]).forEach(s=>{
-      const id="soul_"+BRANCHES[i].toLowerCase()+"_"+s.name.toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,32);
-      CODEX[id]={branch:BRANCHES[i],title:s.name,body:'"'+s.line+'"  — a shade in '+L.title,unlocked:false};
+      CODEX[soulCodexId(BRANCHES[i],s.name)]={branch:BRANCHES[i],title:s.name,body:'"'+s.line+'"  — a shade in '+L.title,unlocked:false};
     });
   });
 }
@@ -249,105 +249,10 @@ const VERSES={
   ]
 };
 
-/* ---------- levels — the Four Branches of the Mabinogi ---------- */
-const LEVELS=[
-{name:"I",title:"Glyn Cuch — The First Branch",branch:"Pwyll, Prince of Dyfed",tint:[26,40,38],
- palette:{wall:[78,92,76],wall2:[60,84,58],floor:[22,34,24],accent:[20,30,22],light:[230,225,170]},
- bossName:"Hafgan · King at the Ford",
- bossDeath:"Hafgan falls in a single blow. Arawn's debt is paid.",
- story:`At Glyn Cuch you set your hounds upon a stag another pack had brought down — and that pack was Arawn's, lord of Annwn. To make amends you wear his face for a year and a day, and at the year's hinge must strike his rival Hafgan one blow only at the ford. The grey hounds with crimson ears bay beyond the gate. Walk the Otherworld. Free the shades bound in its mists.`,
- verse:`"The mist took me at Glyn Cuch /\nere ever I heard the horn." — A bard of Dyfed`,
- grid:["1111111111111111","1......L.......1","1..S...11......1","1......11..S...1","1.L............1","11111....11....1","1...1....11.L..1","1.E.1.........S1","1...1....1111..1","1...L....1..1..1","1...S....1..1.E1","1........1..1..1","1..11111.1..1..1","1.........B....1","1......S......31","1111111111111111"],
- torches:[[2,1],[13,1],[2,4],[13,4],[7,9],[13,7],[5,13]], start:{x:2.5,y:2.5,a:0},
- lorestones:[
-   {x:7,y:1,id:"i_glyncuch",title:"Glyn Cuch",body:"In the wood of Glyn Cuch, Pwyll loosed his hounds upon a stag — but found another pack already at the kill, white of body with red ears, the colour of Annwn. The huntsman of that pack was Arawn, king of the Otherworld, and Pwyll's rough courtesy began the bargain that bound him here."},
-   {x:1,y:4,id:"i_cwnannwn",title:"Cŵn Annwn",body:"The Hounds of Annwn are white with crimson ears, and their baying is heard most clear in autumn skies above the marches of Wales. To hear them too near is a death-omen; to see them is to know that the Otherworld hunts close behind. They are the only hounds that the dead obey."},
-   {x:12,y:6,id:"i_arawn_bargain",title:"Arawn's Bargain",body:"For a year and a day Pwyll wore Arawn's shape and held his throne, sharing nothing with the queen of Annwn but a courteous bed. So the friendship of the two kings was forged — and Pwyll earned the name Pen Annwn, Head of the Otherworld, by which he was known thereafter."},
-   {x:4,y:9,id:"i_hafgan",title:"Hafgan, King at the Ford",body:"Arawn's rival ruled the other half of Annwn and could not be killed by any blow but the first. A second stroke would heal him whole. At year's end Pwyll met him at the ford and gave the one stroke that was needed. Annwn was made one realm under Arawn — and Pwyll went home."}
- ],
- soulPool:[
-   {name:"Eilonwy of the Mist",line:"My lord, the horn never came."},
-   {name:"Idris the Forester",line:"I saw the white pack first — too late, too late."},
-   {name:"Glyn, master of hounds",line:"They had red ears. I should have known."},
-   {name:"Rhiwallon the bard",line:"Sing me home, prince. Sing me home."},
-   {name:"Tegid of Dyfed",line:"The year is almost done, is it not?"},
-   {name:"Mair, milkmaid of Narberth",line:"They say the king wore another's face."},
-   {name:"Cadell the Old",line:"I never crossed the ford. I never crossed the ford."},
-   {name:"Bleddyn the Huntsman",line:"Arawn's pack runs faster than ours."}
- ]},
-{name:"II",title:"Branwen's Hall — The Second Branch",branch:"Branwen ferch Llŷr",tint:[44,20,28],
- palette:{wall:[98,72,66],wall2:[110,52,52],floor:[34,22,22],accent:[40,18,18],light:[255,200,150]},
- bossName:"Efnysien · Breaker of the Cauldron",
- bossDeath:"Efnysien shatters the Pair Dadeni from within — the cauldron is broken.",
- story:`The Pair Dadeni — the Cauldron of Rebirth — was carried to Ireland for Branwen's wedding, and into it the slain are cast to rise again mute and deathless. Now her brother Bran the Blessed lies wounded by a poisoned spear, and only Efnysien's last act will break the cauldron's curse. Press on. The Irish hall lies past the river Llinon.`,
- verse:`"Reborn from the cauldron, no tongue was left them /\nto name their own kin." — Llyfr Coch Hergest, II`,
- grid:["1111111111111111","1......W..L....1","1.S..2222..S...1","1....2..2......1","1.L..2..2..222.1","1.E..2..2..2.2.1","1....2..2..2.2.1","1.........L.2.S1","1.2222.222.2.2.1","1.2....B.....2.1","1.2.S..2222..2.1","1.2.L..2..W..2.1","1.222222..2222.1","1......S.E.....1","1.............31","1111111111111111"],
- torches:[[1,1],[14,1],[1,7],[12,7],[1,13],[14,13]], start:{x:2.5,y:2.5,a:0},
- lorestones:[
-   {x:10,y:1,id:"ii_bran",title:"Bran the Blessed",body:"Bendigeidfran, Bran the Blessed, was high king of the Island of the Mighty — so vast he could wade the Irish Sea with his fleet at his side. Wounded in the foot by a poisoned spear at Branwen's war, he ordered his head cut from his body and borne home. For seven years it sang to his companions at Harlech, and longer still at Gwales."},
-   {x:2,y:4,id:"ii_starling",title:"Branwen's Starling",body:"Wed to Matholwch of Ireland and beaten daily in his kitchens, Branwen taught a starling words and sent it across the sea to her brother. So Bran came in war — and Branwen, when at last she returned to Wales, looked at the two slaughtered hosts and her heart broke in her breast on the banks of the Alaw."},
-   {x:11,y:7,id:"ii_pair_dadeni",title:"The Pair Dadeni",body:"The Cauldron of Rebirth was given by Bran to Matholwch in apology. Cast a slain man into it that night and he rises on the morrow whole — but mute, and remembering nothing of who he was. So the Irish fought on past death, and the Welsh could not win, until Efnysien hid among the slain and burst the cauldron with his own heart."},
-   {x:3,y:11,id:"ii_efnysien",title:"Efnysien",body:"Half-brother to Bran and Branwen, Efnysien's spite began the war: he maimed Matholwch's horses at the wedding feast, and threw Branwen's infant son Gwern into the hall-fire. Yet at the end it was his body alone that broke the cauldron and saved what remained of the Island of the Mighty."}
- ],
- soulPool:[
-   {name:"Gwern, the child cast to the fire",line:"Mother. Mother."},
-   {name:"Heilyn fab Gwyn",line:"We carried his head to Harlech, and it sang."},
-   {name:"Pryderi, who returned",line:"Seven of us came home. Only seven."},
-   {name:"Manawydan fab Llŷr",line:"My brother's wound would not close."},
-   {name:"Taliesin, before he was a bard",line:"At Gwales we forgot a long time."},
-   {name:"A drummer of Matholwch",line:"I died in Ireland. I rose without tongue."},
-   {name:"Branwen's starling",line:"Across the sea, across the sea."},
-   {name:"Ynawg of the Seven",line:"Do not open the door to Cornwall."}
- ]},
-{name:"III",title:"The Mist of Dyfed — The Third Branch",branch:"Manawydan fab Llŷr",tint:[22,30,40],
- palette:{wall:[74,84,98],wall2:[60,72,96],floor:[22,28,36],accent:[18,24,32],light:[200,215,255]},
- bossName:"Llwyd ap Cil Coed · The Enchanter",
- bossDeath:"Llwyd unweaves the mist — Dyfed returns to the green world.",
- story:`Returned from Ireland, you sit at Gorsedd Arberth with Pryderi, Cigfa and Rhiannon. A peal of thunder, and when the mist lifts every house, every herd, every soul in Dyfed is gone. Llwyd ap Cil Coed has cast this enchantment in vengeance for an old slight to Gwawl ap Clud. Free what remains, find the mouse-host, and bargain the kingdom back.`,
- verse:`"Empty was Dyfed, empty Arberth, /\nempty the seven cantrefs of the south." — A song of Manawydan`,
- grid:["1111111111111111","1S.L.........S.1","1..............1","1..2222...2222.1","1..2..2...2..2.1","1.L2..2.L.2..2.1","1..2..2...2..2.1","1..2..2...2..2.1","1..2..22222..2.1","1..2.........2.1","1..2.E..S..E.2.1","1..2.........2.1","1..2222...2222.1","1.....L.B......1","1.S....3......S1","1111111111111111"],
- torches:[[1,1],[14,1],[7,5],[1,9],[14,9],[7,12]], start:{x:1.5,y:1.5,a:0},
- lorestones:[
-   {x:3,y:1,id:"iii_pryderi_loss",title:"The Vanished Kingdom",body:"At Gorsedd Arberth came thunder and a fall of mist. When it lifted, no house stood, no herd lowed, no man or woman remained in Dyfed save Manawydan, Pryderi, Rhiannon and Cigfa. The four lived alone in the empty country for two years, hunting wild honey and mead, before they sought work in the towns of Lloegr."},
-   {x:2,y:5,id:"iii_manawydan_craft",title:"The Craftsman King",body:"Manawydan, son of Llŷr, was a king without a kingdom and learned three trades by his own wit: saddler, shieldwright, and shoemaker. His work was so fine that every other craftsman of Hereford rose against him. In each town he was driven out — and so returned to ruined Dyfed."},
-   {x:8,y:5,id:"iii_rhiannon_pryderi",title:"Rhiannon and Pryderi",body:"Pryderi laid hand on a golden bowl chained to a slab and could neither speak nor let go. Rhiannon, his mother — once accused of devouring her own child, once made to bear guests on her back like a horse — came to free him, and was taken by the same enchantment. Both vanished into Llwyd's caer."},
-   {x:6,y:13,id:"iii_llwyd",title:"Llwyd ap Cil Coed",body:"The enchanter Llwyd cast the mist upon Dyfed in vengeance for the humiliation of his friend Gwawl ap Clud — whom Pwyll had once tricked at Rhiannon's bridal feast, beating him inside a magical bag. Llwyd's mouse-host devoured Manawydan's wheat, and only by catching the queen-mouse did Manawydan win Dyfed back."}
- ],
- soulPool:[
-   {name:"Cigfa, daughter of Gwynn Glôyw",line:"He took Pryderi at the bowl. Don't touch it."},
-   {name:"A craftsman of Hereford",line:"His saddles were too fine, too fine."},
-   {name:"A mouse-shape, given woman's voice",line:"Spare the small one, lord. She is heavy with child."},
-   {name:"Pryderi fab Pwyll",line:"My hand will not come off the bowl."},
-   {name:"Rhiannon, who once bore guests",line:"I have worn a horse's collar before. I can wear it again."},
-   {name:"A shieldwright of Lloegr",line:"They drove us out for the work of our hands."},
-   {name:"Gwawl ap Clud, in the bag",line:"Beaten, beaten, beaten."},
-   {name:"A swineherd of Arberth",line:"The mist took the hogs first."}
- ]},
-{name:"IV",title:"Caer Dathyl — The Fourth Branch",branch:"Math fab Mathonwy",tint:[36,28,46],
- palette:{wall:[88,78,102],wall2:[76,58,104],floor:[28,24,34],accent:[24,20,32],light:[210,195,255]},
- bossName:"Gwyn ap Nudd · King of the Wild Hunt",
- bossDeath:"Gwyn ap Nudd is unhorsed. The borrowed crown lifts from your brow.",
- story:`At the year's hinge, the way home leads through Caer Dathyl, hall of Math fab Mathonwy, who cannot live save with his feet in a virgin's lap except when he is at war. Here Gwydion wove women from flowers and men from staves, and Lleu Llaw Gyffes was given his name. Past the bone-altar waits Gwyn ap Nudd, antlered king of the Wild Hunt — last warden of Annwn's gate.`,
- verse:`"Three things won at Caer Sidi: /\nthe cauldron's breath, the bard's tongue, and the way home." — Preiddeu Annwfn`,
- grid:["1111111111111111","1S.L........L.S1","1..1.222.22.1..1","1.E1.2....2.1.E1","1..1.2.SS.2.1..1","1..1.2....2.1..1","1.....2..2.....1","1.L...2..2...L.1","1.....2.B2.....1","1.....2..2.....1","1..1.2....2.1..1","1..1.2.SS.2.1..1","1.E1.2....2.1.E1","1..1.22.222.1..1","1S....3.......S1","1111111111111111"],
- torches:[[3,3],[12,3],[7,6],[8,9],[3,12],[12,12]], start:{x:8.5,y:1.5,a:Math.PI/2},
- lorestones:[
-   {x:2,y:1,id:"iv_math_lap",title:"Math's Lap-Condition",body:"Math fab Mathonwy, king of Gwynedd, could not live save with his feet in the lap of a virgin maiden — except when the land was at war. When his foot-holder Goewin was violated by Gwydion's brother during a contrived war with Dyfed, Math made her his queen and turned the brothers into deer, swine and wolves for three years' penance."},
-   {x:13,y:1,id:"iv_blodeuwedd",title:"Blodeuwedd",body:"For Lleu Llaw Gyffes, on whom his mother Arianrhod laid a curse that no woman of any race should ever be his wife, Math and Gwydion wove a wife from the flowers of oak, of broom, and of meadowsweet. They named her Blodeuwedd — Flower-Face. She betrayed Lleu to her lover Gronw, and was turned for it into the owl."},
-   {x:2,y:7,id:"iv_lleu",title:"Lleu Llaw Gyffes",body:"Lleu, the Bright One of the Sure Hand, could only be killed by a spear forged for a year on Sundays during Mass, while he stood with one foot on a goat and one on the rim of a tub by a riverbank. Blodeuwedd contrived this exact death — but Gwydion found him, an eagle on a tree, rotting flesh dropping into the swine's trough, and sang him whole."},
-   {x:13,y:7,id:"iv_gwyn_wild_hunt",title:"Gwyn ap Nudd & the Wild Hunt",body:"Gwyn ap Nudd, son of Nudd of the Silver Hand, was given by God dominion over the demons of Annwn lest they destroy the present race of men. With his hound Dormarth he rides at the year's hinge, gathering the souls of the slain to the Otherworld. To pass him is to pass the last warden of Annwn."}
-   ],
- soulPool:[
-   {name:"Goewin, footholder of Math",line:"He made me queen, after."},
-   {name:"Blodeuwedd, before her owl-shape",line:"I am of oak, of broom, of meadowsweet."},
-   {name:"Lleu Llaw Gyffes, before the spear",line:"By the riverbank, by the riverbank."},
-   {name:"Gronw the Strong",line:"Let me hold a stone between us this time."},
-   {name:"Aranrhod's maids",line:"The third curse he broke as well."},
-   {name:"Dylan Eil Ton",line:"I went into the sea and never returned."},
-   {name:"A swineherd of Gwynedd",line:"The pigs were a gift from Annwn. We should never have taken them."},
-   {name:"Gilfaethwy fab Dôn",line:"Three years a deer, a sow, a wolf. We bore young."}
- ]}
-];
+/* ---------- levels — the Four Branches of the Mabinogi ----------
+ The authored campaign is data: src/data/levels/*.json (unified schema, see levels/schema.js),
+ ordered by filename. Edit the JSON, not this file — `npm run validate` checks winnability. */
+const LEVELS=Object.keys(LEVEL_FILES).sort().map(k=>LEVEL_FILES[k].default||LEVEL_FILES[k]);
 
 const KIND={hound:{hp:3,spd:1.3,dmg:9,reach:0.95,scale:0.62,tex:'hound'},
             white:{hp:2,spd:2.5,dmg:7,reach:0.9,scale:0.58,tex:'white'},
@@ -365,7 +270,7 @@ function setDifficulty(d){if(!DIFF[d])return;difficulty=d;try{localStorage.setIt
 function saveCheckpoint(){if(endless)return;try{localStorage.setItem('annwn.save',JSON.stringify({lvl:curLevel,souls:totalSoulsFreed,diff:difficulty}));}catch(e){}}
 function loadCheckpoint(){try{return JSON.parse(localStorage.getItem('annwn.save'));}catch(e){return null;}}
 function clearCheckpoint(){try{localStorage.removeItem('annwn.save');}catch(e){}}
-let souls=[],enemies=[],parts=[],exit=null,lorestones=[],totalSoulsFreed=0,muzzle=0,lastShot=0,bobPhase=0;
+let souls=[],enemies=[],parts=[],exit=null,lorestones=[],totalSoulsFreed=0,soulsAtLevelStart=0,muzzle=0,lastShot=0,bobPhase=0;
 let nearestStone=null,pickups=[];
 const spriteList=[];
 const player={x:2.5,y:2.5,a:0,hp:100,vig:100,horn:0,ward:0};
@@ -411,57 +316,24 @@ function scatterPickups(nHerb,nWard,sx,sy){
   for(let i=0;i<nHerb&&cells.length;i++){const c=cells.pop();pickups.push({x:c[0],y:c[1],kind:'herb',taken:false,ph:Math.random()*9});}
   for(let i=0;i<nWard&&cells.length;i++){const c=cells.pop();pickups.push({x:c[0],y:c[1],kind:'ward',taken:false,ph:Math.random()*9});}
 }
-function loadLevel(i){
-  curLevel=i;endless=false;const L=LEVELS[i];LV=L;map=[];souls=[];enemies=[];exit=null;lorestones=[];nearestStone=null;
-  for(let k=0;k<parts.length;k++)parts[k].life=0; // mark all pooled particles dead
-  // shuffle a copy of the soul pool so each playthrough varies which named souls appear
-  const pool=(L.soulPool||[]).slice();
-  for(let k=pool.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;const tmp=pool[k];pool[k]=pool[j];pool[j]=tmp;}
-  let poolIdx=0;
-  const stoneDefs=(L.lorestones||[]); let stoneIdx=0;
-  L.grid.forEach((row,y)=>{const r=[];for(let x=0;x<row.length;x++){const c=row[x];
-    if(c==='S'){const named=pool[poolIdx%pool.length]||{name:"A wandering shade",line:"…"};poolIdx++;
-      souls.push({x:x+0.5,y:y+0.5,freed:false,bob:Math.random()*6,name:named.name,line:named.line});r.push(0);}
-    else if(c==='E'){enemies.push(mkEnemy(x,y,'hound'));r.push(0);}
-    else if(c==='W'){enemies.push(mkEnemy(x,y,'white'));r.push(0);}
-    else if(c==='B'){enemies.push(mkEnemy(x,y,'boss'));r.push(0);}
-    else if(c==='3'){exit={x:x+0.5,y:y+0.5};r.push(0);}
-    else if(c==='L'){
-      // bind grid L positions to lorestone defs in declaration order
-      const s=stoneDefs[stoneIdx%Math.max(1,stoneDefs.length)]; stoneIdx++;
-      if(s)lorestones.push({x:x+0.5,y:y+0.5,id:s.id,title:s.title,body:s.body,read:!!(CODEX[s.id]&&CODEX[s.id].unlocked),ph:Math.random()*99});
-      r.push(0);
-    }
-    else r.push(c==='.'?0:(parseInt(c)||0));}
-    map.push(r);});
-  MAP_W=map[0].length;MAP_H=map.length;
-  TORCHES=(L.torches||[]).map(t=>({x:t[0]+0.5,y:t[1]+0.5,ph:Math.random()*99}));
-  applyPalette(L.tint, L.palette);
-  buildLightmap();
-  scatterPickups(2,i>=1?1:0,L.start.x,L.start.y);
-  // Branch IV belongs to Gwyn ap Nudd — the Wild Hunt rides once, partway through
-  wildT=(i===3)?30+Math.random()*25:-1; howlT=6+Math.random()*8;
-  player.x=L.start.x;player.y=L.start.y;player.a=L.start.a;player.horn=0;player.ward=0;wardChip(false);
-  document.getElementById('lvl').querySelector('.val').textContent=L.name;
-  // rename the boss bar for the current Branch
-  const bossNm=bossbar.querySelector('.nm');if(bossNm)bossNm.textContent=L.bossName||'Boss';
-  mini.width=MAP_W*7;mini.height=MAP_H*7;updHUD();
-  saveCheckpoint();
-}
-// Load a unified-schema level (procedural or otherwise) into the runtime — the schema-aware
-// twin of loadLevel(). Consumes tiles + entities produced by src/levels/generate.js.
-function loadSchemaLevel(schema){
-  endless=true;LV=schema;curSchema=schema;
+// Campaign branch i — the authored JSON goes through the same loader as procedural levels.
+function loadLevel(i){curLevel=i;loadSchemaLevel(LEVELS[i],'campaign');saveCheckpoint();}
+// Load a unified-schema level into the runtime. mode: 'campaign' (authored branch, codex-aware,
+// runtime pickups), 'endless' (procedural descent), or 'backdrop' (the quiet title-screen drift).
+function loadSchemaLevel(schema,mode='endless'){
+  const campaign=mode==='campaign';
+  endless=!campaign;LV=schema;curSchema=schema;soulsAtLevelStart=totalSoulsFreed;
   schema.bossName=schema.boss&&schema.boss.name;schema.bossDeath=schema.boss&&schema.boss.death;
   map=schema.tiles.map(row=>row.slice());MAP_W=map[0].length;MAP_H=map.length;
   souls=[];enemies=[];exit=null;lorestones=[];nearestStone=null;
-  for(let k=0;k<parts.length;k++)parts[k].life=0;
+  for(let k=0;k<parts.length;k++)parts[k].life=0; // mark all pooled particles dead
+  // shuffle a copy of the soul pool so each playthrough varies which named souls appear
   const pool=(schema.soulPool||[]).slice();
   for(let k=pool.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;const t=pool[k];pool[k]=pool[j];pool[j]=t;}
   let poolIdx=0;const loreById={};(schema.lore||[]).forEach(l=>{loreById[l.id]=l;});
   let start={x:2.5,y:2.5,a:0};TORCHES=[];pickups=[];
   // named forts field elite hounds in their own colours — every third hound is promoted
-  const namedFort=!!(schema.palette&&schema.title&&!/^The Endless Mist/.test(schema.title));
+  const namedFort=!campaign&&!!(schema.palette&&schema.title&&!/^The Endless Mist/.test(schema.title));
   let houndIdx=0;
   for(const e of schema.entities){
     if(e.type==='soul'){const named=pool[poolIdx%Math.max(1,pool.length)]||{name:"A wandering shade",line:"…"};poolIdx++;
@@ -471,18 +343,32 @@ function loadSchemaLevel(schema){
       if(kind==='hound'&&namedFort&&(houndIdx++%3===2))kind='elite';
       enemies.push(mkEnemy(Math.floor(e.x),Math.floor(e.y),kind));}
     else if(e.type==='exit'){exit={x:e.x,y:e.y};}
-    else if(e.type==='lorestone'){const s=loreById[e.ref];if(s)lorestones.push({x:e.x,y:e.y,id:s.id,title:s.title,body:s.body,read:false,ph:Math.random()*99});}
+    else if(e.type==='lorestone'){const s=loreById[e.ref];
+      // campaign stones already in the codex stay read across runs
+      if(s)lorestones.push({x:e.x,y:e.y,id:s.id,title:s.title,body:s.body,read:campaign&&!!(CODEX[s.id]&&CODEX[s.id].unlocked),ph:Math.random()*99});}
     else if(e.type==='torch'){TORCHES.push({x:e.x,y:e.y,ph:Math.random()*99});}
     else if(e.type==='pickup'){pickups.push({x:e.x,y:e.y,kind:e.kind,taken:false,ph:Math.random()*9});}
     else if(e.type==='start'){start={x:e.x,y:e.y,a:e.a||0};}
   }
   applyPalette(schema.tint, schema.palette);
   buildLightmap();
-  wildT=(endlessDepth>=3)?25+Math.random()*30:-1; howlT=6+Math.random()*8;
+  if(campaign&&!pickups.length)scatterPickups(2,curLevel>=1?1:0,start.x,start.y);
+  // the Wild Hunt rides once, partway through: Branch IV belongs to Gwyn ap Nudd, and deep in the mist
+  if(campaign)wildT=(curLevel===3)?30+Math.random()*25:-1;
+  else wildT=(mode==='endless'&&endlessDepth>=3)?25+Math.random()*30:-1;
+  howlT=6+Math.random()*8;
   player.x=start.x;player.y=start.y;player.a=start.a;player.horn=0;player.ward=0;wardChip(false);
   document.getElementById('lvl').querySelector('.val').textContent=schema.name;
-  const bossNm=bossbar.querySelector('.nm');if(bossNm)bossNm.textContent=schema.bossName||'Warden';
+  // rename the boss bar for the current Branch
+  const bossNm=bossbar.querySelector('.nm');if(bossNm)bossNm.textContent=schema.bossName||(campaign?'Boss':'Warden');
   mini.width=MAP_W*7;mini.height=MAP_H*7;updHUD();
+}
+// a quiet generated branch drifts behind the title menu — the mist is already alive
+function loadBackdrop(){
+  try{
+    loadSchemaLevel(generateLevel({seed:(Math.random()*1e9)|0,width:23,height:23,style:'digger',
+      counts:{souls:3,hounds:2,white:0,lore:1,herbs:0,wards:0}}),'backdrop');
+  }catch(e){}
 }
 // Endless Mist — infinite, seeded, procedurally-generated branches that scale with depth.
 let runSeed=0;
@@ -495,7 +381,7 @@ function genEndless(){
     souls:Math.min(8,2+d),hounds:Math.min(11,3+d),
     white:Math.min(4,((d-1)/2|0)),lore:3}});
 }
-function startEndless(seed){runSeed=(seed>>>0)||((Math.random()*1e9)>>>0);endless=true;endlessDepth=1;player.hp=100;player.vig=100;showEndlessStory(genEndless());}
+function startEndless(seed){runSeed=(seed>>>0)||((Math.random()*1e9)>>>0);endless=true;endlessDepth=1;totalSoulsFreed=0;player.hp=100;player.vig=100;showEndlessStory(genEndless());}
 function nextEndless(){document.exitPointerLock();endlessDepth++;player.hp=Math.min(100,player.hp+18);player.vig=100;showEndlessStory(genEndless());}
 function showEndlessStory(lvl){state='story';pendingSchema=lvl;bossbar.classList.remove('show');
   const verse=lvl.verse?`<p style="font-family:'Cinzel',serif;font-style:normal;font-size:13px;letter-spacing:.18em;color:var(--gold);max-width:520px;margin:22px auto 12px;white-space:pre-line;line-height:1.7;text-transform:uppercase">${lvl.verse}</p>`:'';
@@ -523,7 +409,7 @@ addEventListener('keydown',e=>{
     if(e.code==='KeyF')soundHorn();
     else if(e.code==='KeyE')readStone();
     else if(e.code==='Tab'){if(state==='play')openCodex();else if(state==='codex')closeCodex();}
-    else if(e.code==='Escape'||e.code==='KeyP'){if(state==='play')pauseGame();else if(state==='paused'||state==='codex')resumeGame();}
+    else if(e.code==='Escape'||e.code==='KeyP'){if(state==='play')pauseGame();else if(state==='paused'||state==='codex')resumeOrClose();}
     else if(e.code==='KeyM')toggleMute();
   }
   keys[e.code]=true;
@@ -665,7 +551,7 @@ function pollGamepad(dt){
   } else gpMv.active=false;
   // edge-triggered buttons: A/RT strike (or activate menus), B/LT/RB horn, X read, Y codex, Start pause
   const edge=(i)=>pressed(i)&&!gpPrev[i];
-  if(edge(9)){if(state==='play')pauseGame();else if(state==='paused'||state==='codex')resumeGame();}
+  if(edge(9)){if(state==='play')pauseGame();else if(state==='paused'||state==='codex')resumeOrClose();}
   if(edge(0)||edge(7)){
     if(state==='play')shoot();
     else if(!overlay.classList.contains('hidden')){
@@ -826,13 +712,13 @@ function updateParts(dt){for(let i=0;i<parts.length;i++){const p=parts[i];if(p.l
   p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vz-=p.grav*dt;p.vx*=0.96;p.vy*=0.96;}}
 
 /* ---------- combat ---------- */
-function shoot(){const now=performance.now();if(now-lastShot<280)return;lastShot=now;muzzle=6;swing=1;sfxStrike();
+function shoot(){const now=performance.now();if(now-lastShot<280)return;lastShot=now;muzzle=0.1;swing=1;sfxStrike();
   let best=null,bestD=99;
   for(const e of enemies){if(!e.alive)continue;const dx=e.x-player.x,dy=e.y-player.y,dist=Math.sqrt(dx*dx+dy*dy);
     let ang=Math.atan2(dy,dx)-player.a;while(ang<-Math.PI)ang+=2*Math.PI;while(ang>Math.PI)ang-=2*Math.PI;
     const cone=(e.kind==='boss')?0.18:0.12;
     if(Math.abs(ang)<cone&&dist<bestD&&los(player.x,player.y,e.x,e.y)){best=e;bestD=dist;}}
-  if(best){best.hp--;best.hurt=8;sfxHit(best.x,best.y);spawnHit(best.x,best.y,best.kind==='white');
+  if(best){best.hp--;best.hurt=0.13;sfxHit(best.x,best.y);spawnHit(best.x,best.y,best.kind==='white');
     crossEl.classList.add('hit');setTimeout(()=>crossEl.classList.remove('hit'),110);
     gpRumble(60,0.4);
     // knock the target back along the strike line (bosses barely budge)
@@ -987,7 +873,7 @@ function update(dt){
 
   for(const e of enemies){
     if(!e.alive){if(e.dying>0){e.dying-=dt;if(Math.random()<0.3)spawn(e.x,e.y,0.3+Math.random()*0.5,1,[200,205,200],0.35,0.6,0.5,0.3,0.04);}continue;}
-    e.hurt=Math.max(0,e.hurt-1);e.cool=Math.max(0,e.cool-dt);
+    e.hurt=Math.max(0,e.hurt-dt);e.cool=Math.max(0,e.cool-dt);
     const dx=player.x-e.x,dy=player.y-e.y,d=Math.sqrt(dx*dx+dy*dy);e.d=d;
     if(e.stun>0){e.stun-=dt; if(Math.random()<0.25)spawn(e.x,e.y,0.5,1,[210,205,190],0.4,0.5,0.3); continue;}
     if(e.alertT>0){e.alertT-=dt;continue;}               // frozen mid-alert — the pack has seen you
@@ -1051,7 +937,7 @@ function update(dt){
   updateAmbient(dt);
   updateParts(dt);
   if(exit&&levelClear()){const _dxe=exit.x-player.x,_dye=exit.y-player.y;if(_dxe*_dxe+_dye*_dye<0.36)nextLevel();}
-  if(muzzle>0)muzzle--;
+  if(muzzle>0)muzzle-=dt;
 }
 // Gwyn ap Nudd's riders — a one-time pack-flood event, announced by a horn not your own
 function wildHunt(){
@@ -1087,7 +973,6 @@ function nextLevel(){if(endless){nextEndless();return;}if(curLevel+1>=LEVELS.len
 
 /* ---------- renderer ---------- */
 const AMB=0.16, PR=10, PI_=0.85; // ambient, player torch range & intensity
-let curDir={x:1,y:0},curPlane={x:0,y:0},curHOR=0,curFlick=1,curZ=null;
 function render(now){
   const L=LV;
   const t=now*0.001, flick=clamp(0.93+0.05*Math.sin(t*5)+0.02*Math.sin(t*13.3),0.85,1);
@@ -1095,7 +980,6 @@ function render(now){
   const planeX=-dirY*PLANE, planeY=dirX*PLANE;
   const bobPix=Math.sin(bobPhase)*RES_H*0.006;
   const HOR=(RES_H*0.5+bobPix)|0; const tint=curFog||L.tint;
-  curDir={x:dirX,y:dirY};curPlane={x:planeX,y:planeY};curHOR=HOR;curFlick=flick;
   // ceiling (mist) — vertical gradient stirred by a drifting noise layer; the horizontal
   // offset tracks the view angle so the mist parallaxes as you turn
   const mOx=(now*0.0035+player.a*28), mOy=now*0.0016;
@@ -1108,7 +992,6 @@ function render(now){
       const k=1+depth*(n-128)*0.0022;
       buf[o+x]=PK(r*k,g*k,b*k);
     }}
-  curZ=zbuf;
   // Wall pass — DDA raycast per column; floor depth (perp) cached for the scanline floor pass below
   for(let x=0;x<RES_W;x++){
     const camX=2*x/RES_W-1;
@@ -1369,7 +1252,7 @@ function showTitle(){state='title';bossbar.classList.remove('show');wrap.classLi
   const cont=document.getElementById('contBtn');
   if(cont)cont.onclick=()=>{audioInit();ensureAudio();totalSoulsFreed=save.souls||0;resetRunStats();if(save.diff)setDifficulty(save.diff);player.hp=100;player.vig=100;loadLevel(save.lvl);overlay.classList.add('hidden');state='play';sfxHorn();if(!IS_TOUCH)cv.requestPointerLock();};
   scrollC.querySelectorAll('[data-diff]').forEach(b=>{b.onclick=()=>{setDifficulty(b.getAttribute('data-diff'));showTitle();};});
-  const cb=document.getElementById('cdxBtn');if(cb)cb.onclick=()=>{state='play';openCodex();};
+  const cb=document.getElementById('cdxBtn');if(cb)cb.onclick=openCodex;
 }
 function showStory(i){state='story';bossbar.classList.remove('show');const L=LEVELS[i];
   const verse=L.verse?`<p style="font-family:'Cinzel',serif;font-style:normal;font-size:13px;letter-spacing:.18em;color:var(--gold);max-width:520px;margin:22px auto 12px;white-space:pre-line;line-height:1.7;text-transform:uppercase">${L.verse}</p>`:'';
@@ -1401,10 +1284,11 @@ function die(){state='dead';document.exitPointerLock();sfxDeath();addShake(12);b
     <p class="firstcap">The crimson-eared pack closes over you, and the mist takes its due. But Annwn does not let its borrowed king rest. Rise, and walk again.</p>
     <button class="btn" id="retryBtn">Walk Again</button>`;
   overlay.classList.remove('hidden');
-  document.getElementById('retryBtn').onclick=()=>{ensureAudio();player.hp=100;player.vig=100;if(endless&&curSchema)loadSchemaLevel(curSchema);else loadLevel(curLevel);overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();};
+  document.getElementById('retryBtn').onclick=()=>{ensureAudio();player.hp=100;player.vig=100;totalSoulsFreed=soulsAtLevelStart;if(endless&&curSchema)loadSchemaLevel(curSchema);else loadLevel(curLevel);overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();};
 }
-function openCodex(){if(state!=='play')return;state='codex';document.exitPointerLock();renderCodex();overlay.classList.remove('hidden');}
-function closeCodex(){if(state!=='codex')return;overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();}
+let codexFrom='play';
+function openCodex(){if(state!=='play'&&state!=='title')return;codexFrom=state;state='codex';document.exitPointerLock();renderCodex();overlay.classList.remove('hidden');}
+function closeCodex(){if(state!=='codex')return;if(codexFrom==='title'){showTitle();return;}overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();}
 let codexActiveId=null;
 function renderCodex(){
   const counts={I:0,II:0,III:0,IV:0},totals={I:0,II:0,III:0,IV:0};
@@ -1423,7 +1307,7 @@ function renderCodex(){
   scrollC.innerHTML=`<div class="codex"><h1 style="font-size:clamp(24px,4vw,40px)">CODEX<span class="sub">Of the Four Branches</span></h1>
     <div class="progress">${unlockedAll} of ${totalAll} fragments recovered</div>
     <div class="branches">${cols}</div>${reader}
-    <button class="btn" id="closeCdx" style="margin-top:22px">Return to Annwn</button>
+    <button class="btn" id="closeCdx" style="margin-top:22px">${codexFrom==='title'?'Back':'Return to Annwn'}</button>
     <div class="ctrls" style="margin-top:14px"><b>Tab / Esc</b> — close</div></div>`;
   scrollC.querySelectorAll('.entry').forEach(el=>{el.onclick=()=>{const id=el.getAttribute('data-id');if(CODEX[id]&&CODEX[id].unlocked){codexActiveId=id;renderCodex();}};});
   const cb=document.getElementById('closeCdx');if(cb)cb.onclick=closeCodex;
@@ -1436,6 +1320,7 @@ function winGame(){state='win';document.exitPointerLock();sfxChime();bossbar.cla
   overlay.classList.remove('hidden');
   document.getElementById('againBtn').onclick=()=>{totalSoulsFreed=0;updHUD();showTitle();};
 }
+function leaveToTitle(){wrap.classList.remove('lowhp');loadBackdrop();showTitle();}
 function pauseGame(){if(state!=='play')return;state='paused';document.exitPointerLock();releaseWakeLock();showPause();}
 function resumeGame(){if(state!=='paused')return;overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();else requestWakeLock();}
 function showPause(){
@@ -1449,6 +1334,7 @@ function showPause(){
     :`<b>F</b> / Right-click — sound Arawn's Horn &nbsp;·&nbsp; <b>E</b> — read stone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc / P</b> — pause &nbsp;·&nbsp; <b>M</b> — mute`;
   scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">PAUSED<span class="sub">Annwn holds its breath</span></h1>
     <button class="btn" id="resumeBtn">Resume</button>
+    <button class="tg" id="quitBtn" style="margin-left:10px">Leave to Title</button>
     ${sensRow}
     <div class="setrow"><span>Volume</span><input type="range" id="volSl" min="0" max="100" value="${Math.round(VOL*100)}"><button class="tg ${muted?'off':''}" id="muteBtn">${muted?'Muted':'On'}</button></div>
     <div class="setrow"><span>Field of View</span><input type="range" id="fovSl" min="50" max="100" value="${Math.round(FOV*180/Math.PI)}"><span style="opacity:.65" id="fovVal">${Math.round(FOV*180/Math.PI)}°</span></div>
@@ -1458,6 +1344,7 @@ function showPause(){
     <div class="ctrls" style="margin-top:26px">${ctrlsHint}<br><b>Gamepad</b> — sticks move/turn · A strike · B horn · X read · Y codex · Start pause</div>`;
   overlay.classList.remove('hidden');
   document.getElementById('resumeBtn').onclick=resumeGame;
+  document.getElementById('quitBtn').onclick=leaveToTitle;
   const sensEl=document.getElementById('sens');if(sensEl)sensEl.oninput=e=>{MOUSE_SENS=(+e.target.value)/10000;try{localStorage.setItem('annwn.sens',MOUSE_SENS+'');}catch(err){}};
   const tsensEl=document.getElementById('tsens');if(tsensEl)tsensEl.oninput=e=>{const m=(+e.target.value)/100;TOUCH_TURN_RATE=4.0*m;try{localStorage.setItem('annwn.touchSens',m+'');}catch(err){}};
   document.getElementById('volSl').oninput=e=>{setVolume((+e.target.value)/100);};
@@ -1502,10 +1389,6 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 codexSeed();codexLoad();
-// a quiet generated branch drifts behind the title menu — the mist is already alive
-try{
-  loadSchemaLevel(generateLevel({seed:(Math.random()*1e9)|0,width:23,height:23,style:'digger',
-    counts:{souls:3,hounds:2,white:0,lore:1,herbs:0,wards:0}}));
-}catch(e){}
+loadBackdrop();
 showTitle();
 requestAnimationFrame(loop);

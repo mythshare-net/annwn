@@ -3,61 +3,94 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { asciiLevelToSchema } from '../src/levels/ascii.js';
 import { validateLevel } from '../src/levels/schema.js';
 
-// Pull the legacy LEVELS literal straight from the game source (single source of truth)
-// so this test fails if the authored grids and the extracted JSON ever drift apart.
-const js = readFileSync('src/main.js', 'utf8');
-const m = js.match(/const LEVELS=(\[[\s\S]*?\]);\s*\nconst KIND=/);
-const LEGACY = Function('Math', `return (${m[1]});`)(Math);
+// The authored campaign is loaded by the game straight from src/data/levels/*.json
+// (filename order), so these files ARE the four branches.
+const FILES = readdirSync('src/data/levels').filter((f) => f.endsWith('.json')).sort();
+const CAMPAIGN = FILES.map((f) => JSON.parse(readFileSync(`src/data/levels/${f}`, 'utf8')));
 
-function countChars(grid, ch) {
-  return grid.reduce((n, row) => n + [...row].filter((c) => c === ch).length, 0);
-}
-
-describe('ASCII → schema conversion (content parity)', () => {
-  it('finds the four legacy levels in source', () => {
-    expect(LEGACY.length).toBe(4);
+describe('authored campaign (src/data/levels)', () => {
+  it('has the four branches, in order', () => {
+    expect(CAMPAIGN.map((L) => L.name)).toEqual(['I', 'II', 'III', 'IV']);
   });
 
-  LEGACY.forEach((L, i) => {
-    describe(L.title, () => {
-      const schema = asciiLevelToSchema(L, i);
-      const count = (t, kind) => schema.entities.filter((e) => e.type === t && (!kind || e.kind === kind)).length;
+  it('the game loads levels from the JSON, not an inline literal', () => {
+    const js = readFileSync('src/main.js', 'utf8');
+    expect(js).toMatch(/import\.meta\.glob\("\.\/data\/levels\/\*\.json"/);
+    expect(js).not.toMatch(/grid:\s*\[/);
+  });
 
-      it('produces a valid level', () => {
-        const { errors } = validateLevel(schema);
-        expect(errors).toEqual([]);
+  CAMPAIGN.forEach((L, i) => {
+    describe(`${FILES[i]} — ${L.title}`, () => {
+      const count = (t, kind) => L.entities.filter((e) => e.type === t && (!kind || e.kind === kind)).length;
+
+      it('is a valid, winnable level', () => {
+        expect(validateLevel(L).errors).toEqual([]);
       });
-      it('entity counts match the grid characters', () => {
-        expect(count('soul')).toBe(countChars(L.grid, 'S'));
-        expect(count('enemy', 'hound')).toBe(countChars(L.grid, 'E'));
-        expect(count('enemy', 'white')).toBe(countChars(L.grid, 'W'));
-        expect(count('enemy', 'boss')).toBe(countChars(L.grid, 'B'));
-        expect(count('exit')).toBe(countChars(L.grid, '3'));
-        expect(count('lorestone')).toBe(countChars(L.grid, 'L'));
-        expect(count('torch')).toBe((L.torches || []).length);
+      it('is authored content with a named boss, story and verse', () => {
+        expect(L.source).toBe('authored');
+        expect(L.boss.name).toBeTruthy();
+        expect(L.boss.death).toBeTruthy();
+        expect(L.story).toBeTruthy();
+        expect(L.verse).toBeTruthy();
       });
-      it('preserves lore and soul pools', () => {
-        expect(schema.lore.length).toBe(L.lorestones.length);
-        expect(schema.soulPool.length).toBe(L.soulPool.length);
-        expect(schema.boss.name).toBe(L.bossName);
+      it('has exactly one boss and one start', () => {
+        expect(count('enemy', 'boss')).toBe(1);
+        expect(count('start')).toBe(1);
       });
-      it('every lorestone ref resolves to a lore entry', () => {
-        const ids = new Set(schema.lore.map((s) => s.id));
-        for (const e of schema.entities.filter((e) => e.type === 'lorestone')) {
-          expect(ids.has(e.ref)).toBe(true);
-        }
+      it('every lore entry is placed as a lorestone (codex is completable)', () => {
+        const placed = new Set(L.entities.filter((e) => e.type === 'lorestone').map((e) => e.ref));
+        for (const s of L.lore) expect(placed.has(s.id)).toBe(true);
+      });
+      it('has at least as many soul-pool names as souls', () => {
+        expect(L.soulPool.length).toBeGreaterThanOrEqual(count('soul'));
       });
     });
   });
 
-  it('matches the extracted JSON on disk (no drift)', () => {
-    const files = readdirSync('src/data/levels').filter((f) => f.endsWith('.json')).sort();
-    expect(files.length).toBe(LEGACY.length);
-    files.forEach((f, i) => {
-      const onDisk = JSON.parse(readFileSync(`src/data/levels/${f}`, 'utf8'));
-      const fresh = asciiLevelToSchema(LEGACY[i], i);
-      expect(onDisk.entities.length).toBe(fresh.entities.length);
-      expect(onDisk.tiles).toEqual(fresh.tiles);
-    });
+  it('lore ids are unique across the campaign (codex keys)', () => {
+    const ids = CAMPAIGN.flatMap((L) => L.lore.map((s) => s.id));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('ASCII → schema conversion', () => {
+  const LEGACY = {
+    name: 'T', title: 'Test Hall — A Fixture', branch: 'Tester', tint: [1, 2, 3],
+    bossName: 'Warden · Of Tests', bossDeath: 'It falls.', story: 's', verse: 'v',
+    grid: [
+      '11111111',
+      '1.S..L.1',
+      '1.E.2..1',
+      '1.W.2B.1',
+      '1..L..31',
+      '11111111',
+    ],
+    torches: [[1, 1], [6, 4]], start: { x: 1.5, y: 1.5, a: 0 },
+    lorestones: [{ id: 'a', title: 'A', body: 'a' }, { id: 'b', title: 'B', body: 'b' }],
+    soulPool: [{ name: 'One', line: '…' }],
+  };
+  const schema = asciiLevelToSchema(LEGACY, 0);
+  const count = (t, kind) => schema.entities.filter((e) => e.type === t && (!kind || e.kind === kind)).length;
+
+  it('produces a valid level', () => {
+    expect(validateLevel(schema).errors).toEqual([]);
+  });
+  it('maps grid characters to entities and walls', () => {
+    expect(count('soul')).toBe(1);
+    expect(count('enemy', 'hound')).toBe(1);
+    expect(count('enemy', 'white')).toBe(1);
+    expect(count('enemy', 'boss')).toBe(1);
+    expect(count('exit')).toBe(1);
+    expect(count('lorestone')).toBe(2);
+    expect(count('torch')).toBe(2);
+    expect(schema.tiles[2][4]).toBe(2);
+    expect(schema.tiles[1][2]).toBe(0);
+  });
+  it('binds lorestones to lore defs in row-scan order', () => {
+    expect(schema.entities.filter((e) => e.type === 'lorestone').map((e) => e.ref)).toEqual(['a', 'b']);
+  });
+  it('derives the id from the title and keeps boss text', () => {
+    expect(schema.id).toBe('test-hall');
+    expect(schema.boss).toEqual({ name: 'Warden · Of Tests', death: 'It falls.' });
   });
 });

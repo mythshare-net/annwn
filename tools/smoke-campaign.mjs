@@ -21,6 +21,8 @@ function anyObj() {
   });
 }
 win.HTMLCanvasElement.prototype.getContext = () => anyObj();
+win.HTMLCanvasElement.prototype.requestPointerLock = () => {};
+win.document.exitPointerLock = () => {};
 win.AudioContext = win.webkitAudioContext = function () {
   return { createGain: () => ({ connect() {}, gain: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} } }),
     createOscillator: () => ({ connect: () => anyObj(), frequency: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} }, type: '', start() {}, stop() {} }),
@@ -48,4 +50,34 @@ try { for (let i = 0; i < 8; i++) raf && raf(16 * (i + 1)); } catch (e) { fail('
 const lvl = doc.querySelector('#lvl .val')?.textContent;
 if (errors.length) fail('runtime errors during campaign play');
 if (lvl !== 'I') fail(`level label "${lvl}", expected "I"`);
-console.log(`CAMPAIGN SMOKE OK — hard trial persisted, checkpoint saved (lvl ${save.lvl}), Branch ${lvl} rendered`);
+
+const overlay = doc.getElementById('overlay');
+const key = (code) => win.dispatchEvent(new win.KeyboardEvent('keydown', { code }));
+const frames = (n) => { for (let i = 0; i < n; i++) raf && raf(200 + 16 * i); };
+
+// Tab opens the codex; Esc must close it back into play (it used to be a no-op)
+key('Tab');
+if (!doc.getElementById('closeCdx')) fail('Tab did not open the codex');
+key('Escape');
+if (!overlay.classList.contains('hidden')) fail('Esc did not close the codex');
+
+// pause → Leave to Title returns to the title menu with the checkpoint intact
+key('Escape');
+const quit = doc.getElementById('quitBtn');
+if (!quit) fail('pause menu has no Leave to Title button');
+quit.click();
+if (!doc.getElementById('startBtn')) fail('Leave to Title did not show the title');
+frames(3);
+
+// Continue from a later checkpoint loads that branch from the JSON level data
+win.localStorage.setItem('annwn.save', JSON.stringify({ lvl: 3, souls: 5, diff: 'hard' }));
+doc.querySelector('[data-diff="hard"]').click();   // re-renders the title
+const cont = doc.getElementById('contBtn');
+if (!cont) fail('Continue button missing for a lvl-3 checkpoint');
+cont.click();
+try { frames(8); } catch (e) { fail('branch IV render/AI loop threw:\n' + (e.stack || e)); }
+const lvl4 = doc.querySelector('#lvl .val')?.textContent;
+if (lvl4 !== 'IV') fail(`continued to "${lvl4}", expected "IV"`);
+if (errors.length) fail('runtime errors after continue');
+
+console.log(`CAMPAIGN SMOKE OK — hard trial persisted, checkpoint saved (lvl ${save.lvl}), Branch ${lvl} rendered; codex Esc, Leave to Title, Continue → Branch ${lvl4}`);

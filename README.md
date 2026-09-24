@@ -29,7 +29,7 @@ npm run build     # bundle → dist/index.html, copied to ./index.html for Pages
 npm test          # schema validation, generator invariants, round-trip parity
 npm run validate  # validate authored level data
 npm run lint
-node tools/smoke.mjs   # headless boot check
+node tools/smoke.mjs   # headless boot check (also smoke-endless / smoke-campaign)
 ```
 
 ### Layout
@@ -40,8 +40,8 @@ src/
            ascii.js         # legacy ASCII grid → schema converter
            generate.js      # ROT.js procedural generation → schema
   engine/  rng.js           # seeded RNG (rot-js) for reproducible levels/runs
-  data/levels/*.json        # the four authored branches, data-driven
-tools/   extract-levels · validate-levels · gen-preview · smoke · postbuild
+  data/levels/*.json        # the four authored branches — the game loads these directly
+tools/   validate-levels · gen-preview · import-tiled · smoke* · postbuild
 test/    schema · generate · loader   # 100+ tests
 ```
 
@@ -50,7 +50,8 @@ test/    schema · generate · loader   # 100+ tests
 Levels are data, validated and (optionally) generated, all sharing one schema (see the
 `level-author` skill in `.claude/skills/`):
 
-- **Authored** JSON under `src/data/levels/` — extracted from the original hand-typed grids.
+- **Authored** JSON under `src/data/levels/` — the campaign itself: the game loads these files
+  (in filename order) through the same loader as procedural levels. Edit them, then `npm run validate`.
 - **Procedural** via **[ROT.js](https://ondras.github.io/rot.js/)** (MIT): `generateLevel({ seed, style })`
   with `digger` / `uniform` / `cellular` styles. Seeded for reproducible, shareable levels.
 - **Tiled** import (`src/levels/tiled.js`): translate a [Tiled](https://www.mapeditor.org/) JSON
