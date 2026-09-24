@@ -1320,7 +1320,7 @@ function winGame(){state='win';document.exitPointerLock();sfxChime();bossbar.cla
   overlay.classList.remove('hidden');
   document.getElementById('againBtn').onclick=()=>{totalSoulsFreed=0;updHUD();showTitle();};
 }
-function leaveToTitle(){wrap.classList.remove('lowhp');loadBackdrop();showTitle();}
+function leaveToTitle(){ambientStop();wrap.classList.remove('lowhp');loadBackdrop();showTitle();}
 function pauseGame(){if(state!=='play')return;state='paused';document.exitPointerLock();releaseWakeLock();showPause();}
 function resumeGame(){if(state!=='paused')return;overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();else requestWakeLock();}
 function showPause(){
