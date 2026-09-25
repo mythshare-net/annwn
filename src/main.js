@@ -400,8 +400,7 @@ function levelClear(){return souls.every(s=>s.freed)&&!enemies.some(e=>e.kind===
 const IS_TOUCH=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
 if(IS_TOUCH)document.body.classList.add('touch');
 const keys={};
-const touchMv={x:0,y:0,active:false,sprint:false};   // left stick (move)
-const lookMv={x:0,y:0,active:false};                  // right stick (turn)
+const touchMv={x:0,y:0,active:false,sprint:false};   // left stick (move); right half is drag-to-look
 addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='Tab')e.preventDefault();
   if(!e.repeat){
@@ -422,21 +421,24 @@ addEventListener('contextmenu',e=>{if(document.pointerLockElement===cv)e.prevent
 document.addEventListener('pointerlockchange',()=>{if(!IS_TOUCH&&!document.pointerLockElement&&state==='play')pauseGame();});
 
 /* ---------- touch input ---------- */
-let TOUCH_TURN_RATE=4.0; // base rad/s at full right-stick extension; tuned by Turn Speed slider
+// right-half drag-to-look: radians per CSS px of finger travel, times the Look Speed slider
+const TOUCH_LOOK_BASE=0.0055; let TOUCH_LOOK=1;
 function resumeOrClose(){if(state==='codex'){closeCodex();}else if(state==='lore'){closeLore();}else{resumeGame();}}
 function startAudioOnce(){audioInit();ensureAudio();}
 if(IS_TOUCH){
-  const STICK_RADIUS=70;
-  const SPRINT_FRAC=0.92;
-  // restore persisted touch turn-speed
-  try{const v=parseFloat(localStorage.getItem('annwn.touchSens'));if(v>0&&v<10)TOUCH_TURN_RATE=4.0*v;}catch(e){}
-  // anchor positions in CSS px from each corner
+  const STICK_RADIUS=60; // matches the drawn ring (.stickBase is 120px)
+  const DEAD=0.12;        // ignore thumb jitter at the centre
+  const SPRINT_OVER=1.25; // drag past the ring to run — never by accident at full tilt
+  const FOLLOW=1.6;       // beyond this the base trails the thumb, so reversing is instant
+  // restore persisted look speed
+  try{const v=parseFloat(localStorage.getItem('annwn.touchSens'));if(v>0&&v<10)TOUCH_LOOK=v;}catch(e){}
   const ANCHOR_L={left:'80px',bottom:'120px'};
-  const ANCHOR_R={right:'80px',bottom:'120px'};
+  const seen=(k)=>{try{return localStorage.getItem(k)==='1';}catch(e){return false;}};
+  const markSeen=(k,lbl)=>{try{localStorage.setItem(k,'1');}catch(e){} if(lbl)lbl.classList.add('hide');};
   function placeAnchor(base,anchor){
     base.style.left=anchor.left||'';base.style.right=anchor.right||'';
     base.style.top=anchor.top||'';base.style.bottom=anchor.bottom||'';
-    base.style.transform=''; // sticks at rest use CSS-corner anchoring, not the floating translate
+    base.style.transform=''; // at rest the stick sits at its CSS corner anchor, not the floating translate
   }
   function setKnob(knob,dx,dy){
     const mag=Math.sqrt(dx*dx+dy*dy);
@@ -445,65 +447,80 @@ if(IS_TOUCH){
     knob.style.top=(50+Math.sin(ang)*r/STICK_RADIUS*50)+'%';
   }
   function resetKnob(knob){knob.style.left='50%';knob.style.top='50%';}
-  // make a stick: zone touch-area, base+knob DOM, anchor, label, and a state object to write into
-  function makeStick(zone,base,knob,lbl,anchor,state,seenKey){
+  // left: floating move stick — base appears under the thumb, dead zone, overshoot to run
+  function makeMoveStick(zone,base,knob,lbl,anchor,mv,seenKey){
     placeAnchor(base,anchor);
     let touchId=null,cx=0,cy=0;
-    const seen=()=>{try{return localStorage.getItem(seenKey)==='1';}catch(e){return false;}};
-    const markSeen=()=>{try{localStorage.setItem(seenKey,'1');}catch(e){} if(lbl)lbl.classList.add('hide'); base.classList.add('faded');};
-    if(seen()){if(lbl)lbl.classList.add('hide'); base.classList.add('faded');}
+    if(seen(seenKey)){if(lbl)lbl.classList.add('hide');base.classList.add('faded');}
     zone.addEventListener('touchstart',e=>{
       e.preventDefault();startAudioOnce();
       if(touchId!==null)return;
       const t=e.changedTouches[0];touchId=t.identifier;cx=t.clientX;cy=t.clientY;
-      // float base to touch point; CSS corner anchoring is dropped while active
       base.style.left=cx+'px';base.style.top=cy+'px';base.style.right='';base.style.bottom='';
       base.style.transform='translate(-50%,-50%)';
-      base.classList.add('show');resetKnob(knob);
-      state.active=true;state.x=0;state.y=0; if(state.hasOwnProperty('sprint'))state.sprint=false;
-      markSeen();
+      base.classList.add('show','faded');resetKnob(knob);
+      mv.active=true;mv.x=0;mv.y=0;mv.sprint=false;
+      markSeen(seenKey,lbl);
       requestWakeLock();
     },{passive:false});
     zone.addEventListener('touchmove',e=>{
       e.preventDefault();
       for(const t of e.changedTouches){if(t.identifier!==touchId)continue;
-        const dx=t.clientX-cx, dy=t.clientY-cy;
-        const mag=Math.sqrt(dx*dx+dy*dy);
-        const r=Math.min(STICK_RADIUS,mag); const k=mag>0?r/mag:0;
-        state.x=dx*k/STICK_RADIUS; state.y=dy*k/STICK_RADIUS;
-        if(state.hasOwnProperty('sprint'))state.sprint=(r/STICK_RADIUS)>SPRINT_FRAC;
+        let dx=t.clientX-cx, dy=t.clientY-cy, mag=Math.sqrt(dx*dx+dy*dy);
+        if(mag>STICK_RADIUS*FOLLOW){
+          const k=(mag-STICK_RADIUS*FOLLOW)/mag; cx+=dx*k; cy+=dy*k;
+          base.style.left=cx+'px';base.style.top=cy+'px';
+          dx=t.clientX-cx; dy=t.clientY-cy; mag=STICK_RADIUS*FOLLOW;
+        }
+        const n=Math.min(1,mag/STICK_RADIUS), out=n<DEAD?0:(n-DEAD)/(1-DEAD);
+        mv.x=mag?dx/mag*out:0; mv.y=mag?dy/mag*out:0;
+        mv.sprint=mag>STICK_RADIUS*SPRINT_OVER;
+        base.classList.toggle('run',mv.sprint);
         setKnob(knob,dx,dy);
       }
     },{passive:false});
     function end(e){
       for(const t of e.changedTouches){if(t.identifier!==touchId)continue;
-        touchId=null;state.x=0;state.y=0;state.active=false;
-        if(state.hasOwnProperty('sprint'))state.sprint=false;
-        placeAnchor(base,anchor);base.classList.remove('show');resetKnob(knob);
+        touchId=null;mv.x=0;mv.y=0;mv.active=false;mv.sprint=false;
+        placeAnchor(base,anchor);base.classList.remove('show','run');resetKnob(knob);
       }
     }
     zone.addEventListener('touchend',end);zone.addEventListener('touchcancel',end);
   }
-  makeStick(
+  // right: drag anywhere to look (1:1 with finger travel, like a mouse); a quick tap strikes
+  function makeLookZone(zone,lbl,seenKey){
+    let touchId=null,lx=0,sx=0,sy=0,t0=0,moved=0;
+    if(seen(seenKey)&&lbl)lbl.classList.add('hide');
+    zone.addEventListener('touchstart',e=>{
+      e.preventDefault();startAudioOnce();
+      if(touchId!==null)return;
+      const t=e.changedTouches[0];touchId=t.identifier;lx=sx=t.clientX;sy=t.clientY;t0=performance.now();moved=0;
+      requestWakeLock();
+    },{passive:false});
+    zone.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      for(const t of e.changedTouches){if(t.identifier!==touchId)continue;
+        const dx=t.clientX-lx; lx=t.clientX;
+        moved=Math.max(moved,Math.hypot(t.clientX-sx,t.clientY-sy));
+        if(state==='play')player.a+=dx*TOUCH_LOOK_BASE*TOUCH_LOOK;
+        if(moved>30)markSeen(seenKey,lbl);
+      }
+    },{passive:false});
+    function end(e){
+      for(const t of e.changedTouches){if(t.identifier!==touchId)continue;
+        touchId=null;
+        if(e.type==='touchend'&&state==='play'&&moved<12&&performance.now()-t0<220){shoot();haptic(8);}
+      }
+    }
+    zone.addEventListener('touchend',end);zone.addEventListener('touchcancel',end);
+  }
+  makeMoveStick(
     document.getElementById('stickArea'),
     document.getElementById('stickBase'),
     document.querySelector('#stickBase .stickKnob'),
     document.getElementById('stickLbl'),
     ANCHOR_L,touchMv,'annwn.seenMoveStick');
-  makeStick(
-    document.getElementById('stickAreaR'),
-    document.getElementById('stickBaseR'),
-    document.querySelector('#stickBaseR .stickKnob'),
-    document.getElementById('stickLblR'),
-    ANCHOR_R,lookMv,'annwn.seenTurnStick');
-  // place the labels just below their anchors after layout
-  function positionLabels(){
-    const lblL=document.getElementById('stickLbl');
-    const lblR=document.getElementById('stickLblR');
-    if(lblL){lblL.style.left='80px';lblL.style.bottom='30px';}
-    if(lblR){lblR.style.right='80px';lblR.style.left='auto';lblR.style.bottom='30px';lblR.style.transform='translateX(50%)';}
-  }
-  positionLabels();window.addEventListener('resize',positionLabels);
+  makeLookZone(document.getElementById('stickAreaR'),document.getElementById('stickLblR'),'annwn.seenLookZone');
   // action buttons — touchstart for snappiness
   function bindBtn(id,fn){const el=document.getElementById(id);if(!el)return;
     const handler=e=>{e.preventDefault();e.stopPropagation();startAudioOnce();fn();};
@@ -713,11 +730,14 @@ function updateParts(dt){for(let i=0;i<parts.length;i++){const p=parts[i];if(p.l
 
 /* ---------- combat ---------- */
 function shoot(){const now=performance.now();if(now-lastShot<280)return;lastShot=now;muzzle=0.1;swing=1;sfxStrike();
-  let best=null,bestD=99;
+  // thumbs and sticks can't aim like a mouse: widen the strike cone and ease the view onto the target
+  const assist=(IS_TOUCH&&!document.pointerLockElement)||gpActive;
+  let best=null,bestD=99,bestAng=0;
   for(const e of enemies){if(!e.alive)continue;const dx=e.x-player.x,dy=e.y-player.y,dist=Math.sqrt(dx*dx+dy*dy);
     let ang=Math.atan2(dy,dx)-player.a;while(ang<-Math.PI)ang+=2*Math.PI;while(ang>Math.PI)ang-=2*Math.PI;
-    const cone=(e.kind==='boss')?0.18:0.12;
-    if(Math.abs(ang)<cone&&dist<bestD&&los(player.x,player.y,e.x,e.y)){best=e;bestD=dist;}}
+    const cone=((e.kind==='boss')?0.18:0.12)*(assist?2.2:1);
+    if(Math.abs(ang)<cone&&dist<bestD&&los(player.x,player.y,e.x,e.y)){best=e;bestD=dist;bestAng=ang;}}
+  if(best&&assist)player.a+=bestAng*0.5;
   if(best){best.hp--;best.hurt=0.13;sfxHit(best.x,best.y);spawnHit(best.x,best.y,best.kind==='white');
     crossEl.classList.add('hit');setTimeout(()=>crossEl.classList.remove('hit'),110);
     gpRumble(60,0.4);
@@ -801,6 +821,10 @@ function showCodexChip(){const c=document.getElementById('codexchip');if(c){c.cl
 
 /* ---------- update ---------- */
 const canWalk=(t)=>t===0||t===3; // secret walls (3) yield to the player alone
+// the player has a body: keep BODY_R clear of walls so the view never fills with brick and
+// corners are slid past instead of snagged on (each axis is tested separately → wall sliding)
+const BODY_R=0.22;
+const bodyFree=(x,y)=>canWalk(tileAt(x-BODY_R,y-BODY_R))&&canWalk(tileAt(x+BODY_R,y-BODY_R))&&canWalk(tileAt(x-BODY_R,y+BODY_R))&&canWalk(tileAt(x+BODY_R,y+BODY_R));
 function update(dt){
   if(state!=='play')return;
   if(hitStop>0){hitStop-=dt;dt*=0.12;} // brief world-freeze on a landed strike
@@ -825,10 +849,6 @@ function update(dt){
       mvx+=Math.cos(player.a)*fwd+Math.cos(player.a+Math.PI/2)*str;
       mvy+=Math.sin(player.a)*fwd+Math.sin(player.a+Math.PI/2)*str;
     }
-    if(lookMv.active){
-      // right stick: turn rate proportional to horizontal extension
-      player.a+=lookMv.x*TOUCH_TURN_RATE*dt;
-    }
   }
   if(gpMv.active){
     const fwd=-gpMv.y, str=gpMv.x;
@@ -838,7 +858,7 @@ function update(dt){
   const ml=Math.sqrt(mvx*mvx+mvy*mvy);let moving=false;
   if(ml>0){const mag=Math.min(1,ml);mvx/=ml;mvy/=ml;moving=true;bobPhase+=dt*(sprint?14:9);
     const nx=player.x+mvx*spd*mag,ny=player.y+mvy*spd*mag;
-    if(canWalk(tileAt(nx,player.y)))player.x=nx; if(canWalk(tileAt(player.x,ny)))player.y=ny;}
+    if(bodyFree(nx,player.y))player.x=nx; if(bodyFree(player.x,ny))player.y=ny;}
   // pushing through a secret wall reveals the hollow behind it
   {const px=player.x|0,py=player.y|0;
    if(px>=0&&py>=0&&px<MAP_W&&py<MAP_H&&map[py][px]===3){
@@ -1245,7 +1265,7 @@ function showTitle(){state='title';bossbar.classList.remove('show');wrap.classLi
     <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.2em;color:var(--mist);margin-top:8px;text-transform:uppercase">Enter a seed to share or replay a descent</div>
     ${diffRow}
     ${cdxHint}
-    <div class="ctrls">${IS_TOUCH?`<b>Left stick</b> — move &nbsp;·&nbsp; push hard to run<br><b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W S</b> / Up Down — walk &nbsp;·&nbsp; <b>A D</b> / Left Right — turn<br><b>Click canvas</b> — engage mouse-look (then A D strafe, Q strafes left)<br><b>Space / Click</b> — strike &nbsp;·&nbsp; <b>F</b> — horn &nbsp;·&nbsp; <b>E</b> — read &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
+    <div class="ctrls">${IS_TOUCH?`<b>Left thumb</b> — move &nbsp;·&nbsp; drag past the ring to run<br><b>Right side</b> — drag to look &nbsp;·&nbsp; tap to strike<br><b>Strike / Horn / Read</b> — buttons on the right`:`<b>W S</b> / Up Down — walk &nbsp;·&nbsp; <b>A D</b> / Left Right — turn<br><b>Click canvas</b> — engage mouse-look (then A D strafe, Q strafes left)<br><b>Space / Click</b> — strike &nbsp;·&nbsp; <b>F</b> — horn &nbsp;·&nbsp; <b>E</b> — read &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc</b> — pause`}<br>Free every soul to open the deeper portal</div>`;
   overlay.classList.remove('hidden');
   document.getElementById('startBtn').onclick=()=>{audioInit();ensureAudio();clearCheckpoint();totalSoulsFreed=0;resetRunStats();player.hp=100;player.vig=100;loadLevel(0);showStory(0);};
   document.getElementById('endlessBtn').onclick=()=>{audioInit();ensureAudio();resetRunStats();const si=document.getElementById('seedInput');startEndless(hashSeed(si?si.value:''));};
@@ -1324,13 +1344,13 @@ function leaveToTitle(){ambientStop();wrap.classList.remove('lowhp');loadBackdro
 function pauseGame(){if(state!=='play')return;state='paused';document.exitPointerLock();releaseWakeLock();showPause();}
 function resumeGame(){if(state!=='paused')return;overlay.classList.add('hidden');state='play';if(!IS_TOUCH)cv.requestPointerLock();else requestWakeLock();}
 function showPause(){
-  // Touch users see a Turn Speed slider (right-stick rate multiplier 0.5x-2.0x).
+  // Touch users see a Look Speed slider (drag-to-look multiplier 0.4x-2.5x).
   // Desktop users see Look Sensitivity (mouse rad/px).
   const sensRow=IS_TOUCH
-    ?`<div class="setrow"><span>Turn Speed</span><input type="range" id="tsens" min="50" max="200" value="${Math.round((TOUCH_TURN_RATE/4.0)*100)}"></div>`
+    ?`<div class="setrow"><span>Look Speed</span><input type="range" id="tsens" min="40" max="250" value="${Math.round(TOUCH_LOOK*100)}"></div>`
     :`<div class="setrow"><span>Look Sensitivity</span><input type="range" id="sens" min="8" max="60" value="${Math.round(MOUSE_SENS*10000)}"></div>`;
   const ctrlsHint=IS_TOUCH
-    ?`<b>Left stick</b> — move (push hard to run) &nbsp;·&nbsp; <b>Right stick</b> — turn<br><b>Strike / Horn / Read</b> — buttons on the right &nbsp;·&nbsp; <b>📜</b> — Codex &nbsp;·&nbsp; <b>⏸</b> — pause`
+    ?`<b>Left thumb</b> — move (drag past the ring to run) &nbsp;·&nbsp; <b>Right side</b> — drag to look, tap to strike<br><b>Strike / Horn / Read</b> — buttons on the right &nbsp;·&nbsp; <b>📜</b> — Codex &nbsp;·&nbsp; <b>⏸</b> — pause`
     :`<b>F</b> / Right-click — sound Arawn's Horn &nbsp;·&nbsp; <b>E</b> — read stone &nbsp;·&nbsp; <b>Tab</b> — Codex &nbsp;·&nbsp; <b>Esc / P</b> — pause &nbsp;·&nbsp; <b>M</b> — mute`;
   scrollC.innerHTML=`<h1 style="font-size:clamp(28px,5vw,52px)">PAUSED<span class="sub">Annwn holds its breath</span></h1>
     <button class="btn" id="resumeBtn">Resume</button>
@@ -1346,7 +1366,7 @@ function showPause(){
   document.getElementById('resumeBtn').onclick=resumeGame;
   document.getElementById('quitBtn').onclick=leaveToTitle;
   const sensEl=document.getElementById('sens');if(sensEl)sensEl.oninput=e=>{MOUSE_SENS=(+e.target.value)/10000;try{localStorage.setItem('annwn.sens',MOUSE_SENS+'');}catch(err){}};
-  const tsensEl=document.getElementById('tsens');if(tsensEl)tsensEl.oninput=e=>{const m=(+e.target.value)/100;TOUCH_TURN_RATE=4.0*m;try{localStorage.setItem('annwn.touchSens',m+'');}catch(err){}};
+  const tsensEl=document.getElementById('tsens');if(tsensEl)tsensEl.oninput=e=>{const m=(+e.target.value)/100;TOUCH_LOOK=m;try{localStorage.setItem('annwn.touchSens',m+'');}catch(err){}};
   document.getElementById('volSl').oninput=e=>{setVolume((+e.target.value)/100);};
   document.getElementById('fovSl').oninput=e=>{setFov(+e.target.value);const fv=document.getElementById('fovVal');if(fv)fv.textContent=Math.round(+e.target.value)+'°';};
   document.getElementById('shakeBtn').onclick=e=>{SHAKE_ON=!SHAKE_ON;try{localStorage.setItem('annwn.shake',SHAKE_ON?'1':'0');}catch(err){}e.target.textContent=SHAKE_ON?'On':'Off';e.target.classList.toggle('off',!SHAKE_ON);};
@@ -1374,6 +1394,8 @@ function loop(now){
   }
   if(shake>0.15){const a=Math.random()*6.283;cv.style.transform=`translate(${Math.cos(a)*shake}px,${Math.sin(a)*shake}px)`;shake*=0.86;}
   else if(shake!==0){shake=0;cv.style.transform='';}
+  // never leave the page scrolled (a focused/tapped control can nudge it on phones) — the HUD would slide off-screen
+  if(document.body.scrollTop||document.documentElement.scrollTop){document.body.scrollTop=0;document.documentElement.scrollTop=0;}
   // touch UI is only useful while playing — hide it when any overlay is up
   if(IS_TOUCH){const menu=!overlay.classList.contains('hidden');if(menu!==document.body.classList.contains('menu'))document.body.classList.toggle('menu',menu);}
   // adaptive resolution — only while playing, and not when user has pinned
